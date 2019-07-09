@@ -1,6 +1,5 @@
 # PLS
-setwd("C:/Users/dkeo/surfdrive/pd_imaging_pls")
-options(stringsAsFactors = FALSE)
+library(mixOmics)
 
 # Read cortical thickness data
 ct <- read.table("Corticale_dikte_PD_FS_.txt", header = TRUE)

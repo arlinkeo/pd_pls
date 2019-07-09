@@ -1,5 +1,3 @@
-setwd("C:/Users/dkeo/surfdrive/pd_imaging_pls/pd_pls")
-
 # Load cortical thickness data
 ct <- read.table("../Corticale_dikte_PD_FS_.txt", header = TRUE)
 colnames(ct) <- gsub("_thickness", "", colnames(ct))
@@ -14,7 +12,7 @@ rois_rh <- rois[grep("rh_", rois)]
 rois2 <- gsub("lh_", "", rois_lh)
 ct_lh <- ct[, rois_lh]
 ct_rh <- ct[, rois_rh]
-identical (gsub("lh_", "", lh_rois), gsub("rh_", "", rh_rois))# Order of samples are identical
+identical (gsub("lh_", "", rois_lh), gsub("rh_", "", rois_rh))# Order of samples are identical
 
 # Comparing cortical thickness between left and right hemisphere
 ttest_h <- data.frame(t(sapply(c(1:length(rois_lh)), function(i) {
@@ -26,4 +24,4 @@ ttest_h <- data.frame(t(sapply(c(1:length(rois_lh)), function(i) {
 ttest_h$BH <- p.adjust(ttest_h$pvalue)
 ttest_h <- cbind(ROI = rois2, ttest_h)
 tab <- ttest_h[order(ttest_h$BH),]
-write.table(tab, file = "../ttest_ct_hemispheres.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+write.table(tab, file = "output/corticalthickness_hemispheres.txt", sep = "\t", row.names = FALSE, quote = FALSE)
