@@ -28,7 +28,7 @@ group_stats2 <- prepare.file('../cortical_thickness_ttest_jeroen/group_statistic
 p2 <- plot.mean(group_stats2)
 p2
 
-########## Equality tests between conditions ##########
+########## Equality tests between conditions (SPSS results) ##########
 
 eq_tests <- read.delim("../cortical_thickness_ttest_jeroen/equality_tests_cortical_thickness.txt", stringsAsFactors = FALSE)
 colnames(eq_tests) <- eq_tests[1, ]
@@ -37,6 +37,7 @@ colnames(eq_tests)[c(1,2,10,11)] <- c("Group", "variance_assumption", "lower95",
 filter_rows <- grep("Leeftijd|Mean", eq_tests$Group)
 eq_tests <- eq_tests[-c(filter_rows, filter_rows+1), ]
 eq_tests[seq(2, nrow(eq_tests), by=2), "Group"] <- eq_tests[seq(1, nrow(eq_tests), by=2), "Group"]
+eq_tests$Group <- gsub("_thickness", "", eq_tests$Group)
 
 eq2 <- eq_tests[eq_tests$variance_assumption == "Equal variances not assumed", -c(3,4)]
 eq2$BH <- p.adjust(eq2$`Sig. (2-tailed)`, method = "BH")
