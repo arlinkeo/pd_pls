@@ -46,14 +46,13 @@ res <- pls(roi_expr, tstats$t, ncomp = 10, mode = "regression")
 df <- data.frame(
   roi = parcel_lh$ROI, 
   name = gsub("lh_", "", parcel_lh$Name), 
-  pls1 = res$variates$X[,1], 
-  dct = tstats$t)
-p <- ggplot(df, aes(pls1, dct)) +
+  pls1 = res$variates$X[,1],
+  tstats = tstats$t)
+p <- ggplot(df, aes(pls1, tstats)) +
   geom_point(color = "blue") + geom_smooth(method = "lm") +
-  # geom_text(aes(label = name), hjust = -.1, size = 3) +
   geom_text_repel(aes(label = name), size = 3) +
   labs(x = "PLS1", y = "t-statistics") +
-  ggtitle(paste("r =", round(cor(df$pls1, df$dct), digits = 2))) +
+  ggtitle(paste("r =", round(cor(df$pls1, df$tstats), digits = 2))) +
   theme_classic()
 pdf("output/PLS1_tstats.pdf", 8, 6)
 p
@@ -61,6 +60,40 @@ dev.off()
 
 # Top ranked genes per pls component
 loadings <- res$loadings$X[,1]
-loadings <- sort(loadings)
+loadings <- rev(sort(loadings))
 topgenes <- names(loadings)[1:100]
-write.table(topgenes, "output/topgenes.txt", quote = FALSE, row.names = FALSE)
+df <- data.frame(
+  'Gene_name' = entrezId2Name(topgenes), 
+  'Gene_ID' = topgenes, 
+  'PLS1_loadings' = round(loadings[topgenes], digits = 4))
+df <- cbind(df[1:50, ], df[51:100,])
+write.table(df, "output/top100genes_pls1.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+
+library("RDAVIDWebService")
+
+# RDavid
+david<-DAVIDWebService$new(email="D.L.Keo@tudelft.nl",
+                           url="https://david.abcc.ncifcrf.gov/webservice/services/DAVIDWebService.DAVIDWebServiceHttpSoap12Endpoint/")
+setAnnotationCategories(david, c("GOTERM_BP_ALL", "GOTERM_MF_ALL", "GOTERM_CC_ALL"))
+setTimeOut(david, 200000)
+bg <- addList(david, ahba.genes(), idType = "ENTREZ_GENE_ID", listName = "AHBA background", listType = "Background")
+bg
+
+output_dir <- "output/Functional_enrichment/"
+dir.create(output_dir)
+
+result <- addList(david, topgenes, idType = "ENTREZ_GENE_ID", listName = "top100_pls1", listType = "Gene")
+print(result)
+setCurrentBackgroundPosition(david, 1)
+getFunctionalAnnotationChartFile(david, paste0(output_dir, "top100_pls1_goterms.txt"), threshold=0.05, count=2L)
+getClusterReportFile(david, paste0(output_dir, "top100_pls1_termclusters.txt"), type = c("Term"))
+
+# Benjamini-corrected GO-terms
+t <- read.csv(paste0(output_dir, "top100_pls1_goterms.txt"), header = TRUE, sep = "\t", colClasses = "character")
+rows <- t$Benjamini < 0.05
+t <- t[rows, c("Term", "Benjamini")]
+t$Benjamini <- as.numeric(t$Benjamini)
+t <- t[order(t$Benjamini), ]
+t$Term <- sapply(strsplit(t$Term, "~"), function(x) x[2])
+t$Benjamini <- format(t$Benjamini, digits = 2, scientific = TRUE)
+write.table(t, file = paste0(output_dir, "top100_pls1_goterms_BHcorrected.txt"), row.names = FALSE, quote = FALSE, sep = "\t")
