@@ -1,8 +1,9 @@
-library(ggplot2)
-library(reshape2)
+# library(ggplot2)
+# library(reshape2)
 
 ########## Mean thickness between conditions ##########
 
+# Read and prepare file
 prepare.file <- function(file){
   df <- read.delim(file)
   filter_rows <- grep("Leeftijd|Mean|bankssts", df$Group)
@@ -13,16 +14,16 @@ prepare.file <- function(file){
   df
 }
 
-plot.mean <- function(df){
-  mean_ct  <- df[, c("X", "Mean", "hemisphere")]
-  df <- melt(mean_ct)
-  ggplot(df) + geom_boxplot(aes(x=interaction(X, hemisphere), y=value)) +
-    theme_classic()
-}
+# plot.mean <- function(df){
+#   mean_ct  <- df[, c("X", "Mean", "hemisphere")]
+#   df <- melt(mean_ct)
+#   ggplot(df) + geom_boxplot(aes(x=interaction(X, hemisphere), y=value)) +
+#     theme_classic()
+# }
 
 group_stats1 <- prepare.file('../cortical_thickness_ttest_jeroen/group_statistics_cortical_thickness_large.txt')
-p1 <- plot.mean(group_stats1)
-p1
+# p1 <- plot.mean(group_stats1)
+# p1
 
 group_stats2 <- prepare.file('../cortical_thickness_ttest_jeroen/group_statistics_cortical_thickness_small.txt')
 p2 <- plot.mean(group_stats2)
@@ -50,4 +51,6 @@ tab <- tab[order(tab$`BH-adjusted P`),]
 tab[, 2] <- round(as.numeric(tab[, 2]), digits = 3)
 tab[, 3] <- round(as.numeric(tab[,3]), digits = 3)
 tab[, 4] <- format(tab[, 4], scientific = TRUE, digits = 4)
+tab[, "Region"] <- gsub("lh", "Left hemisphere", tab[, "Region"])
+tab[, "Region"] <- gsub("rh", "Right hemisphere", tab[, "Region"])
 write.table(tab, file = "output/cortical_thickness_conditions.txt", quote = FALSE, row.names = FALSE, sep = "\t")
