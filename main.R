@@ -26,6 +26,5 @@ source("corticalthickness_conditions.R")
 source("corticalthickness_hemispheres.R")
 source("samples_roi.R")
 source("pls.R")
-
-
 source("clinical_scores_distribution.R")
+source("pls_clinical_scores.R")
