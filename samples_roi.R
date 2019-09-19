@@ -3,19 +3,19 @@
 coord <- read.delim("../sample_coordinates_roi.txt", col.names = c("sample", "x", "y", "z"))
 
 # Match samples by MNI-coordinates for each AHBA donor and add information to sample_info
-samples_info <- lapply(donorNames, function(d){
+sample_info <- lapply(donorNames, function(d){
   x <- sample_info[[d]]
   s1 <- x[, c("mni_x", "mni_y", "mni_z")]
   s1 <- paste(as.data.frame(t(s1)))
   s2 <- coord[,-1]
   s2 <- paste(as.data.frame(t(s2)))
-  rows <- match(s1, s2)
+  rows <- match(s1, s2) # rows in s2
   cbind(fs_roi = coord[rows,1], x)
 })
 # saveRDS(samples_info, file = "output/samples_info.rds")
 
 # Sample size per region and donor
-t <- sapply(samples_info, function(x) {
+t <- sapply(sample_info, function(x) {
   t <- x[!is.na(x$fs_roi), "fs_roi"] # roi IDs
   sapply(setNames(c(1:34), c(1:34)), function(r) sum(t==r))
 })
