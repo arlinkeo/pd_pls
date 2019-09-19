@@ -22,13 +22,17 @@ ttest_h <- data.frame(t(sapply(c(1:length(rois_lh)), function(i) {
   l <- ct_lh[, i]
   r <- ct_rh[, i]
   t <- t.test(l,r)
-  c(ct.lh = unname(t$estimate[1]), ct.rh = unname(t$estimate[2]), pvalue = t$p.value)
+  c('mean difference' = unname(t$estimate[1]) - unname(t$estimate[2]),
+    ct.lh = unname(t$estimate[1]), 
+    ct.rh = unname(t$estimate[2]), 
+    pvalue = t$p.value)
 })))
 ttest_h$BH <- p.adjust(ttest_h$pvalue)
+ttest_h$pvalue <- NULL
 ttest_h <- cbind(ROI = gsub("lh_", "", rois_lh), ttest_h)
 tab <- ttest_h[ttest_h$BH < 0.05, ]
 tab <- tab[order(tab$BH),]
-tab[,c(2,3)] <- round(tab[,c(2,3)], digits = 2)
-tab[,c(4,5)] <- format(tab[,c(4,5)], digits = 3, scientific = TRUE)
-colnames(tab)[2:4] <- c('Cortical thickness left hemisphere', 'Cortical thickness right hemisphere', 'P-value')
+tab[,c(2:4)] <- round(tab[,c(2:4)], digits = 2)
+tab[,5] <- format(tab[,5], digits = 3, scientific = TRUE)
+colnames(tab)[2:5] <- c('Mean Difference', 'Cortical thickness left hemisphere', 'Cortical thickness right hemisphere', 'BH-corrected P')
 write.table(tab, file = "output/corticalthickness_hemispheres.txt", sep = "\t", row.names = FALSE, quote = FALSE)
