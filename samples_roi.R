@@ -26,3 +26,25 @@ t <- cbind(parcel_id[rownames(t),], t, Total = apply(t, 1, sum))
 t$name <- gsub("lh_", "", t$name)
 colnames(t)[1:2] <- c("ROI", "Name")
 write.table(t, file = "output/number_of_samples.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+
+# Parcel info
+parcel_lh <- parcel_id[grep("lh_", parcel_id$name), ]
+
+# X: gene expression in cortical regions
+roi_expr <- lapply(donorNames, function(d){
+  e <- brainExpr[[d]]
+  s <- sample_info[[d]]
+  e <- sapply(parcel_lh$id, function(r){ # Mean expression within ROI
+    cols <- which(s$fs_roi == r)
+    if (length(cols) > 1) {
+      apply(e[, cols], 1, mean)
+    } else if (length(cols) == 1){
+      e[, cols]
+    } else {
+      rep(NA, nrow(e))
+    }
+  }) # genes x samples
+  colnames(e) <- parcel_lh$id
+  t(e)
+})
+roi_expr <- apply(simplify2array(roi_expr), c(1,2), function(x) mean(x, na.rm = TRUE)) # Mean across donors
