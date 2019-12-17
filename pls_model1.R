@@ -1,7 +1,5 @@
-# Partial Least Squares
-library(pls)
-library(ggrepel)
-library(ComplexHeatmap)
+# PLS model 1: single response variable
+# Gene expression as predictors and T-score of cortical thickness as response
 
 # Parcel info
 parcel_lh <- parcel_id[grep("lh_", parcel_id$name), ]

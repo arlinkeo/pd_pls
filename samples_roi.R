@@ -1,3 +1,5 @@
+# Use the mapping of Allen samples to the Desikan-Killiany atlas, curated by Arnatkeviciute et al. 2019
+# Using our own processed Allen samples, they are matched by MNI coordinates per donor
 
 # Sample selection from Arnatkeviciute et al. 2019 annotated with MNI-coordinates
 coord <- read.delim("../sample_coordinates_roi.txt", col.names = c("sample", "x", "y", "z"))
