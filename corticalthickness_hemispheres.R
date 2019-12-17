@@ -1,3 +1,5 @@
+# Comparing the cortical thickness between hemispheres for each of the 34 cortical brain regions in PD
+
 # Load cortical thickness data
 ct <- read.table("../Corticale_dikte_PD_FS_.txt", header = TRUE)
 colnames(ct) <- gsub("_thickness", "", colnames(ct))
