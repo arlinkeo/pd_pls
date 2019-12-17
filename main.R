@@ -1,6 +1,12 @@
 setwd("C:/Users/dkeo/surfdrive/pd_imaging_pls/pd_pls")
 options(stringsAsFactors = FALSE)
 
+library(ggplot2)
+library(reshape2)
+library(pls)
+library(ggrepel)
+library(ComplexHeatmap)
+
 # Useful variables
 donorNames <- c("donor9861", "donor10021", "donor12876", "donor14380", "donor15496", "donor15697")
 names(donorNames) <- donorNames
