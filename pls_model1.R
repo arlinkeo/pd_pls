@@ -1,74 +1,51 @@
 # PLS model 1: single response variable
 # Gene expression as predictors and T-score of cortical thickness as response
 
-# Parcel info
-parcel_lh <- parcel_id[grep("lh_", parcel_id$name), ]
-
-# X: gene expression in cortical regions
-roi_expr <- lapply(donorNames, function(d){
-  e <- brainExpr[[d]]
-  s <- sample_info[[d]]
-  e <- sapply(parcel_lh$id, function(r){ # Mean expression within ROI
-    cols <- which(s$fs_roi == r)
-    if (length(cols) > 1) {
-      apply(e[, cols], 1, mean)
-    } else if (length(cols) == 1){
-      e[, cols]
-    } else {
-      rep(NA, nrow(e))
-    }
-  }) # genes x samples
-  colnames(e) <- parcel_lh$id
-  t(e)
-})
-roi_expr <- apply(simplify2array(roi_expr), c(1,2), function(x) mean(x, na.rm = TRUE)) # Mean across donors
-  
 # Y: t-stats of comparing cortical thickness between PD and control,
 tscores <- ct_test[grep("lh_", ct_test$Group), c("Group", "t")]
 rownames(tscores) <- parcel_lh$id
 tscores$t <- as.numeric(tscores$t)
 
+YexplVar <- function(x){ # explained variance of Y in PLS model
+  v <- 100*(drop(R2(x, estimate = "train", intercept = FALSE)$val))
+  # v <- c(v[1],diff(v)) # reverse cumsum
+  names(v) <- paste("Comp", gsub(" comps", "", names(v)))
+  v
+}
+
 # PLS
 x <- roi_expr
 y <- tscores$t
-pls1 <- plsr(y ~ x, ncomp = 10, validation = "LOO")
+pls_model1 <- plsr(y ~ x, ncomp = 10, scale = TRUE, validation = "LOO")
 pdf("output/pls1_CV_LOO.pdf", 6, 4)
-plot(RMSEP(pls1), legendpos = "topright")
+plot(RMSEP(pls_model1), legendpos = "topright", main = "")
 dev.off()
-summary(pls1)
-explVar <- explvar(pls1)
-plot(pls1, "loadings", comps = 1:2, legendpos = "topleft", xlab = "gene")
-paste(gsub("Comp ", "PLS", names(explVar)), paste0(round(explVar, digits = 2), "%"), sep = ": ", collapse = "; ")
-# ncomp.perm <- selectNcomp(pls1, method = "randomization", plot = TRUE)
-
-pls1_scores <- pls1$scores[,1:3]
+summary(pls_model1)
+explVarX <- explvar(pls_model1)
+explVarY <- YexplVar(pls_model1)
+# plot(pls_model1, "loadings", comps = 1:2, legendpos = "topleft", xlab = "gene")
+# paste(gsub("Comp ", "PLS", names(explVarX)), paste0(round(explVarX, digits = 2), "%"), sep = ": ", collapse = "; ")
+pls1_scores <- scores(pls_model1)
 pls1_scores <- cbind(ID = rownames(pls1_scores), label = rois_lh, pls1_scores)
 write.table(pls1_scores, file = "output/pls1_scores.txt", quote = FALSE, row.names = FALSE)
 
-
-v <- selectNcomp(pls1, method = "randomization", nperm = 1000, alpha = 0.05, ncomp = 10, plot = TRUE)
+# v <- selectNcomp(pls_model1, method = "randomization", nperm = 1000, alpha = 0.05, ncomp = 10, plot = TRUE)
 
 # PLS model 1 permutation test of components
-
 system.time(
-  perm_stat <- t(sapply(1:100, function(i){
+  perm_stat <- t(sapply(1:1000, function(i){
     y_perm <- sample(y)
     pls <- plsr(y_perm ~ x, ncomp = 10, scale = TRUE)
-    # slope <- pls$Yloadings
-    # as.vector(slope)
-    r <- sapply(setNames(c(1:10), paste("Comp", c(1:10))), function(c){
-      cor(pls$scores[,c], pls$Yscores[,c])
+    # YexplVar(pls)
+    r <- sapply(paste("Comp", c(1:10)), function(c){
+      cor(scores(pls)[,c], Yscores(pls)[,c])
     })
-    r
   })
 ))
-slope <- pls1$Yloadings
-perm_p <- sapply(setNames(c(1:10), paste("Comp", c(1:10))), function(c){
-  s <- slope[c]
-  perm_s <- perm_stat[,c]
-  t <- (mean(perm_s)-s)/(sd(perm_s)/sqrt(length(y)))
-  p <- 2*pt(t, df = length(y) - 1)
-  p
+perm_p <- sapply(paste("Comp", c(1:10)), function(c){
+  sum(perm_stat[,c] >= explVarY[c])/1000
+  # r <- cor(scores(pls_model1)[,c], Yscores(pls_model1)[,c])
+  # sum(perm_stat[,c] >= r)/1000
 })
 perm_p
 
