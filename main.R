@@ -20,6 +20,11 @@ sample_info <- lapply(donorNames, function(d){ # Sample info per donor
   read.csv(paste0(ahba_dir, "/sample_info_", d, "_2018-11-18.csv"))
 })
 
+# Load parcel info (Arnatkevic̆iūtė et al., 2019)
+parcel_id <- read.table("../parcel_info.txt", col.names = c("id", "name"))
+parcel_id$name <- gsub("ctx-", "", parcel_id$name)
+parcel_id$name <- gsub("-", "_", parcel_id$name)
+
 # Source directory with functions
 fun_dir <- paste0(getwd(), "/functions/")
 R.utils::sourceDirectory(fun_dir, modifiedOnly = FALSE)

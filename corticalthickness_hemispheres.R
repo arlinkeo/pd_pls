@@ -5,11 +5,6 @@ ct <- read.table("../Corticale_dikte_PD_FS_.txt", header = TRUE)
 colnames(ct) <- gsub("_thickness", "", colnames(ct))
 rownames(ct) <- ct$ID
 
-# Load parcel info (Arnatkevic̆iūtė et al., 2019)
-parcel_id <- read.table("../parcel_info.txt", col.names = c("id", "name"))
-parcel_id$name <- gsub("ctx-", "", parcel_id$name)
-parcel_id$name <- gsub("-", "_", parcel_id$name)
-
 # Regions of interest (ROI's)
 rois <- intersect(colnames(ct), parcel_id$name)
 rois_lh <- rois[grep("lh_", rois)]
