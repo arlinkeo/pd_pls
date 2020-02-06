@@ -24,15 +24,22 @@ ct_test <- eq_tests[eq_tests$variance_assumption == "Equal variances not assumed
 ct_test$mean_control <- group_stats[group_stats$X == "control", "Mean"]
 ct_test$mean_pd <- group_stats[group_stats$X == "PD", "Mean"]
 ct_test$BH <- p.adjust(ct_test$`Sig. (2-tailed)`, method = "BH")
-signif_rows <- ct_test$BH < 0.05
 
-tab <- data.frame(ct_test[signif_rows, c("Group", "Mean Difference", "mean_control", "mean_pd", "BH")])
-colnames(tab) <- c("Region", "Mean Difference", "Mean control", "Mean PD", "BH-adjusted P")
-tab$Region <- gsub("_", " ", tab$Region)
-tab <- tab[order(tab$`BH-adjusted P`),]
-tab$`Mean Difference` <- as.numeric(tab$`Mean Difference`)
-tab[, c(2:4)] <- round(tab[, c(2:4)], digits = 3)
-tab$`BH-adjusted P` <- format(tab$`BH-adjusted P`, scientific = TRUE, digits = 3)
-tab[, "Region"] <- gsub("lh", "Left hemisphere", tab[, "Region"])
-tab[, "Region"] <- gsub("rh", "Right hemisphere", tab[, "Region"])
-write.table(tab, file = "output/cortical_thickness_conditions.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+# Write table to create figure of delta CT
+tab <- data.frame(ct_test[, c("Group", "t", "Mean Difference", "mean_control", "mean_pd", "BH")])
+colnames(tab) <- c("Region name", "T-score", "Delta CT", "Mean CT control", "Mean CT PD", "BH-corrected P")
+tab <- cbind('Region ID' = parcel_id[match(tab$Region, parcel_id$name), "id"], tab)
+tab <- tab[order(tab$`Region ID`), ]
+write.table(tab, file = "output/cortical_thickness_conditions1.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+# For supplementary 
+tab <- tab[order(tab$`BH-corrected P`), ]
+tab[, c(3)] <- as.numeric(tab[, c(3)])
+tab[, c(4)] <- as.numeric(tab[, c(4)])
+tab[, c(3:6)] <- round(tab[, c(3:6)], digits = 3)
+signif_rows <- tab$`BH-corrected P` < 0.05
+tab$`BH-corrected P` <- format(tab$`BH-corrected P`, scientific = TRUE, digits = 3)
+write.table(tab, file = "output/cortical_thickness_conditions2.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+# Write table with only significant findings for in manuscript
+tab <- tab[signif_rows, ]
+tab <- tab[, -1]
+write.table(tab, file = "output/cortical_thickness_conditions3.txt", quote = FALSE, row.names = FALSE, sep = "\t")

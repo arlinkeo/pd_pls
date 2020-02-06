@@ -11,25 +11,35 @@ rois_lh <- rois[grep("lh_", rois)]
 rois_rh <- rois[grep("rh_", rois)]
 ct_lh <- ct[, rois_lh]
 ct_rh <- ct[, rois_rh]
-# rois_lh <- gsub("lh_", "", rois_lh)
-identical(gsub("lh_", "", rois_lh), gsub("rh_", "", rois_rh))# Order of samples are identical
+identical(gsub("lh_", "", rois_lh), gsub("rh_", "", rois_rh))# Order of samples is identical between hemispheres
 
 # Comparing cortical thickness between left and right hemisphere
 ttest_h <- data.frame(t(sapply(c(1:length(rois_lh)), function(i) {
-  l <- ct_lh[, i]
   r <- ct_rh[, i]
-  t <- t.test(l,r)
-  c('mean difference' = unname(t$estimate[1]) - unname(t$estimate[2]),
-    ct.lh = unname(t$estimate[1]), 
-    ct.rh = unname(t$estimate[2]), 
+  l <- ct_lh[, i]
+  t <- t.test(r,l)
+  c(t$statistic,
+    'mean difference' = unname(t$estimate[1]) - unname(t$estimate[2]),
+    ct.rh = unname(t$estimate[1]), 
+    ct.lh = unname(t$estimate[2]), 
     pvalue = t$p.value)
 })))
 ttest_h$BH <- p.adjust(ttest_h$pvalue)
-ttest_h$pvalue <- NULL
-ttest_h <- cbind(ROI = gsub("lh_", "", rois_lh), ttest_h)
-tab <- ttest_h[ttest_h$BH < 0.05, ]
-tab <- tab[order(tab$BH),]
-tab[,c(2:4)] <- round(tab[,c(2:4)], digits = 2)
-tab[,5] <- format(tab[,5], digits = 3, scientific = TRUE)
-colnames(tab)[2:5] <- c('Mean Difference', 'Cortical thickness left hemisphere', 'Cortical thickness right hemisphere', 'BH-corrected P')
-write.table(tab, file = "output/corticalthickness_hemispheres.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+ttest_h <- cbind('Region' = rois_lh, ttest_h)
+
+# Write table to create figure of delta CT
+tab <- ttest_h[, -6]
+colnames(tab) <- c("Region name", "T-score", "Delta CT", "Mean CT left hemisphere", "Mean CT right hemisphere", "BH-corrected P")
+tab <- cbind('Region ID' = parcel_id[match(tab$Region, parcel_id$name), "id"], tab)
+tab <- tab[order(tab$`Region ID`), ]
+write.table(tab, file = "output/cortical_thickness_hemispheres1.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+# For supplementary 
+tab <- tab[order(tab$`BH-corrected P`), ]
+tab[, c(3:6)] <- round(tab[, c(3:6)], digits = 3)
+signif_rows <- tab$`BH-corrected P` < 0.05
+tab$`BH-corrected P` <- format(tab$`BH-corrected P`, scientific = TRUE, digits = 3)
+write.table(tab, file = "output/cortical_thickness_hemispheres2.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+# Write table with only significant findings for in manuscript
+tab <- tab[signif_rows, ]
+tab <- tab[, -1]
+write.table(tab, file = "output/cortical_thickness_hemispheres3.txt", quote = FALSE, row.names = FALSE, sep = "\t")
