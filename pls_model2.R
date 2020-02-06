@@ -15,15 +15,15 @@ df <- melt(coef["Pr(>|t|)", , ])
 df$value <- p.adjust(df$value, method = "BH") # BH-correct for regions and clinical features
 bh <- dcast(df, Var1 ~ Var2)[, -1]
 coef <- abind(coef, 'BH' = bh, along = 1) # BH added to coef
-range(coef["Estimate", , ])
-sum(coef["BH", , ] < 0.05)
+range(coef["t value", , ])
+  sum(coef["BH", , ] < 0.05)
 
 
 # Heatmaps for coefficients and BH-corrected P-values
 t <- t(coef["t value", , ])
 q1 <- max(quantile(abs(t), 0.9))
 col_fun <- colorRamp2(c(-q1, 0, q1), c("blue", "#EEEEEE", "red"))# Heat colors centered around 0
-hm1 <- Heatmap(t, name = "T-score of slope",
+hm1 <- Heatmap(t, name = "T-score\nof slope",
               col = col_fun,
               cluster_rows = FALSE,
               row_names_gp = gpar(fontsize = 10),
@@ -33,7 +33,7 @@ hm1 <- Heatmap(t, name = "T-score of slope",
               column_names_gp = gpar(fontsize = 10),
               width = unit(ncol(t)*.8, "lines"), 
               height = unit(nrow(t)*.8, "lines"),
-              heatmap_legend_param = list(title_position = "topcenter"),
+              heatmap_legend_param = list(title_position = "topleft"),
               cell_fun = function(i, j, x, y, width, height, fill) {
                 if(t(coef["BH", i, j]) < 0.05) {
                   grid.text("*", x = x, y = y)
@@ -42,7 +42,7 @@ hm1 <- Heatmap(t, name = "T-score of slope",
                 }
               }
 )
-pdf("output/heatmap_clinical_scores.pdf", 7.8, 4)
+pdf("output/heatmap_clinical_scores.pdf", 7.8, 3.8)
 hm1
 dev.off()
 
@@ -80,7 +80,7 @@ YexplVar <- function(x){ # explained variance of Y in PLS model
 # PLS with al features
 x <- roi_expr
 # write.table(x, file = "output/x.csv", quote = FALSE, row.names = FALSE, col.names = FALSE, sep = ",")
-y <- coef["Estimate", , ]
+y <- coef["t value", , ]
 # write.table(y, file = "output/y.csv", quote = FALSE, row.names = FALSE, col.names = FALSE, sep = ",")
 pls_model2 <- plsr(y ~ x, ncomp = 10, scale = TRUE, validation = "LOO")
 summary(pls_model2)
@@ -90,8 +90,6 @@ explVarY <- YexplVar(pls_model2)
 pls2_scores <- scores(pls_model2)
 tab <- cbind(ID = c(1:34), label = rois_lh, pls2_scores)
 write.table(tab, file = "output/pls2_scores.txt", quote = FALSE, row.names = FALSE, sep = "\t")
-
-# paste(gsub("Comp ", "PLS", names(explVarX)), paste0(round(explVar, digits = 2), "%"), sep = ": ", collapse = "; ")
 
 # # plsdepot package
 # pls_model2b <- plsreg2(x, y, comps = 10)
@@ -127,7 +125,7 @@ dev.off()
 # perm_p
 
 # Plot
-p <- lapply(c(1:3), function(i){
+p <- lapply(c(1:4), function(i){
   df <- data.frame(
     roi = parcel_lh$id, 
     name = gsub("lh_", "", parcel_lh$name), 
@@ -144,40 +142,14 @@ p <- lapply(c(1:3), function(i){
     ggtitle(paste("r =", round(cor(df$p.pls, df$r.pls), digits = 2))) +
     theme_classic()
 })
-pdf("output/pls_clinical_scores.pdf", 12, 3)
+pdf("output/pls_clinical_scores.pdf", 16, 3)
 ggarrange(plotlist = p, nrow = 1)
 dev.off()
 
-# Genes ranked by coefficients of 1st 3 components
+# Genes ranked by coefficients of components
 pls2_coef <- sapply(dimnames(pls_model2$coefficients)[[3]], function(i){
   pls2_coef <- sort(pls_model2$coefficients[,1,i], decreasing = TRUE) # sort genes by pls1 coefficients
-})
-
-# overlap <- apply(pls2_coef, 2, function(c1){
-#   length(intersect(c1[1:500], names(pls1_coef)[1:500]))
-# })
-# overlap
-# # rank test of gene coeficients between components
-# p_ranktest <- apply(pls2_coef, 2, function(c1){
-#   # apply(pls2_coef, 2, function(c2){
-#    t <- wilcox.test(c1,pls1_coef)
-#    t$p.value
-#   # })
-# }) 
-# p_ranktest <- format(p_ranktest, scientific = TRUE, digits = 4)
-# hm <- Heatmap(p_ranktest, name = 'P-value ranktest',
-#               cluster_rows = FALSE,
-#               cluster_columns = FALSE,
-#               row_names_gp = gpar(fontsize = 10),
-#               row_names_side = c("left"),
-#               row_title_rot = 0,
-#               column_names_side = c("top"),
-#               column_names_gp = gpar(fontsize = 10),
-#               column_names_rot = 45,
-#               width = unit(ncol(exprTopGenes)*.8, "lines"), 
-#               height = unit(nrow(exprTopGenes)*.8, "lines")
-# )
-# hm
+}, simplify = FALSE)
 
 # # Heatmap top rank genes
 # hm <- apply(pls2_coef, 2, function(c){
@@ -205,14 +177,14 @@ pls2_coef <- sapply(dimnames(pls_model2$coefficients)[[3]], function(i){
 # dev.off()
 
 # Functional enrichment with Reactome PA and GSEA
-gsea2 <- lapply(colnames(pls2_coef)[1:3], function(i){
-  gsea <- gsePathway(pls2_coef[, i], organism = "human", pAdjustMethod = "BH")
+gsea2 <- sapply(names(pls2_coef)[1:4], function(i){
+  gsea <- gsePathway(pls2_coef[[i]], organism = "human", pAdjustMethod = "BH")
   df <- as.data.frame(gsea)
   df <- df[, c("Description", "p.adjust")]
   df$p.adjust <- format(df$p.adjust, digits = 3, scientific = TRUE)
   write.table(df, file = paste0("output/GSEA_pls2_comp", gsub(" comps", "", i), ".txt"), quote = FALSE, sep = "\t", row.names = FALSE)
   gsea
-})
+}, simplify = FALSE)
 
 # Overlap pathways
 p <- lapply(gsea2, function(gsea){
@@ -221,91 +193,92 @@ p <- lapply(gsea2, function(gsea){
 lengths(p)
 overlapping_pathways <- Reduce(intersect, p)
 length(overlapping_pathways)
-
-# Heatmap of pathways for PLS2 of X
-pathways <- gsea2[[1]]@geneSets[overlapping_pathways]
-names(pathways) <- gsea2[[1]]@result[names(pathways), "Description"]
-exprPathways <- sapply(pathways, function(g){
-  g <- intersect(ahba.genes(), g)
-  e <- roi_expr[, g]
-  apply(e, 1, mean)
-})
-exprPathways <- t(scale(exprPathways))
-colnames(exprPathways) <- gsub("lh_", "", rois_lh)
-
-# pathways_avgcoef <- lapply(pls2_coef, function(c){
-#   
-# })
-#   
-#   sapply(overlapping_pathways, function(g){
-#   mean(pls1_coef[intersect(ahba.genes(), g)])
-# })
+sapply(p, function(x) length(intersect(x, gsea1.1@result$ID)))
 # 
+# # Heatmap of pathways for PLS2 of X
+# pathways <- gsea2[[3]]@geneSets[overlapping_pathways]
+# names(pathways) <- gsea2[[3]]@result[names(pathways), "Description"]
+# exprPathways <- sapply(pathways, function(g){
+#   g <- intersect(ahba.genes(), g)
+#   e <- roi_expr[, g]
+#   apply(e, 1, mean)
+# })
+# exprPathways <- t(scale(exprPathways))
+# colnames(exprPathways) <- gsub("lh_", "", rois_lh)
 # 
-# col_order <- order(-y)
-# row_order <- order(pathways_avgcoef)
-# pathways_avgcoef <- pathways_avgcoef[row_order]
-exprPathways <- exprPathways[, col_order]
-
-# significant_regions <- ct_test[ct_test$BH < 0.05, c("Group", "t", "Mean Difference", "BH")]
-# significant_regions <- significant_regions[grep("lh_", significant_regions$Group),]
-# significant_regions$Group <- gsub("lh_|rh_", "", significant_regions$Group)
-# cols <- as.numeric(colnames(exprPathways) %in% significant_regions$Group)
-# cols <- cols*-5+8
-ha_col <- HeatmapAnnotation('Beta' = anno_barplot(y[col_order]), #gp = gpar(fill = cols)),
-                            height = unit(2, "cm"), annotation_name_gp = gpar(fontsize = 8))
-
-# ha_row <- rowAnnotation('average PLS coefficient of genes' = anno_barplot(pathways_avgcoef), 
-#                         width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
-
-hm <- Heatmap(exprPathways, name = 'Z-Score\nexpression',
-              # split = pathways_avgcoef > 0, 
-              cluster_rows = FALSE,
-              cluster_columns = FALSE,
-              row_names_gp = gpar(fontsize = 6),
-              row_names_side = c("right"),
-              row_title_rot = 0,
-              column_names_side = c("top"),
-              column_names_gp = gpar(fontsize = 6),
-              column_names_rot = 45,
-              width = unit(ncol(exprPathways)*.5, "lines"), 
-              height = unit(nrow(exprPathways)*.5, "lines")
-              # top_annotation = ha_col,
-              # right_annotation = ha_row
-)
-pdf("output/heatmap_pls1_pathways.pdf", 12, 17.5)
-draw(hm, heatmap_legend_side = "left")
-dev.off()
-
-# Small version of heatmap
-rows <- which(rownames(exprPathways) %in% c("Protein folding", "Apoptosis", "Regulation of RAS by GAPs", 
-                                            "Cellular response to hypoxia", "Regulation of mitotic cell cycle",
-                                            "Mitochondrial protein import", "Mitochondrial translation",
-                                            "p53−Independent DNA Damage Response",
-                                            "Stabilization of p53", "APC/C:Cdc20 mediated degradation of mitotic proteins",
-                                            "Signaling by Interleukins", 
-                                            "Circadian Clock", "Transcriptional Regulation by MECP2", 
-                                            "Chromatin organization", "Nucleotide Excision Repair"))
-rows <- c(rows, grep("DNA damage|DNA Damage|SUMO", rownames(exprPathways)))
-rows <- unique(rows)
-rows <- sort(rows)
-exprPathways <- exprPathways[rows, ]
-ha_row <- rowAnnotation('average PLS coefficient of genes' = anno_barplot(pathways_avgcoef[rows], annotation_name_side = "left"), 
-                        width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
-hm <- Heatmap(exprPathways, name = 'Z-Score\nexpression',
-              cluster_rows = FALSE,
-              cluster_columns = FALSE,
-              row_names_gp = gpar(fontsize = 6),
-              row_names_side = c("right"),
-              row_title_rot = 0,
-              column_names_side = c("top"),
-              column_names_gp = gpar(fontsize = 6),
-              column_names_rot = 45,
-              width = unit(ncol(exprPathways)*.5, "lines"), 
-              height = unit(nrow(exprPathways)*.5, "lines"),
-              top_annotation = ha_col,
-              right_annotation = ha_row
-)
-pdf("output/heatmap_pls1_pathways_reduced.pdf", 8, 4.5)
-hm
-dev.off()
+# # pathways_avgcoef <- lapply(pls2_coef, function(c){
+# # 
+# # })
+# # 
+# #   sapply(overlapping_pathways, function(g){
+# #   mean(pls1_coef[intersect(ahba.genes(), g)])
+# # })
+# # 
+# # 
+# # col_order <- order(-y)
+# # row_order <- order(pathways_avgcoef)
+# # pathways_avgcoef <- pathways_avgcoef[row_order]
+# exprPathways <- exprPathways[, col_order]
+# 
+# # significant_regions <- ct_test[ct_test$BH < 0.05, c("Group", "t", "Mean Difference", "BH")]
+# # significant_regions <- significant_regions[grep("lh_", significant_regions$Group),]
+# # significant_regions$Group <- gsub("lh_|rh_", "", significant_regions$Group)
+# # cols <- as.numeric(colnames(exprPathways) %in% significant_regions$Group)
+# # cols <- cols*-5+8
+# ha_col <- HeatmapAnnotation('Beta' = anno_barplot(y[col_order]), #gp = gpar(fill = cols)),
+#                             height = unit(2, "cm"), annotation_name_gp = gpar(fontsize = 8))
+# 
+# # ha_row <- rowAnnotation('average PLS coefficient of genes' = anno_barplot(pathways_avgcoef), 
+# #                         width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
+# 
+# hm <- Heatmap(exprPathways, name = 'Z-Score\nexpression',
+#               # split = pathways_avgcoef > 0, 
+#               cluster_rows = FALSE,
+#               cluster_columns = FALSE,
+#               row_names_gp = gpar(fontsize = 6),
+#               row_names_side = c("right"),
+#               row_title_rot = 0,
+#               column_names_side = c("top"),
+#               column_names_gp = gpar(fontsize = 6),
+#               column_names_rot = 45,
+#               width = unit(ncol(exprPathways)*.5, "lines"), 
+#               height = unit(nrow(exprPathways)*.5, "lines")
+#               # top_annotation = ha_col,
+#               # right_annotation = ha_row
+# )
+# pdf("output/heatmap_pls2_pathways.pdf", 12, 17.5)
+# draw(hm, heatmap_legend_side = "left")
+# dev.off()
+# 
+# # Small version of heatmap
+# rows <- which(rownames(exprPathways) %in% c("Protein folding", "Apoptosis", "Regulation of RAS by GAPs", 
+#                                             "Cellular response to hypoxia", "Regulation of mitotic cell cycle",
+#                                             "Mitochondrial protein import", "Mitochondrial translation",
+#                                             "p53−Independent DNA Damage Response",
+#                                             "Stabilization of p53", "APC/C:Cdc20 mediated degradation of mitotic proteins",
+#                                             "Signaling by Interleukins", 
+#                                             "Circadian Clock", "Transcriptional Regulation by MECP2", 
+#                                             "Chromatin organization", "Nucleotide Excision Repair"))
+# rows <- c(rows, grep("DNA damage|DNA Damage|SUMO|mitochondrial", rownames(exprPathways)))
+# rows <- unique(rows)
+# rows <- sort(rows)
+# exprPathways <- exprPathways[rows, ]
+# # ha_row <- rowAnnotation('average PLS coefficient of genes' = anno_barplot(pathways_avgcoef[rows], annotation_name_side = "left"), 
+#                         # width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
+# hm <- Heatmap(exprPathways, name = 'Z-Score\nexpression',
+#               cluster_rows = FALSE,
+#               cluster_columns = FALSE,
+#               row_names_gp = gpar(fontsize = 6),
+#               row_names_side = c("right"),
+#               row_title_rot = 0,
+#               column_names_side = c("top"),
+#               column_names_gp = gpar(fontsize = 6),
+#               column_names_rot = 45,
+#               width = unit(ncol(exprPathways)*.5, "lines"), 
+#               height = unit(nrow(exprPathways)*.5, "lines"),
+#               top_annotation = ha_col#,
+#               # right_annotation = ha_row
+# )
+# pdf("output/heatmap_pls2_pathways_reduced.pdf", 8, 4.5)
+# hm
+# dev.off()
