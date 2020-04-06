@@ -1,23 +1,5 @@
 # Load clinical scores
 
-# clin_dir <- "//vf-DataSafe/DataSafe$/div3/neur/SLEUTELBESTANDEN_794/nieuwe_export_pd"
-# clin_files  <- list.files(clin_dir)
-# clin_files <- clin_files[grep(".SAV", clin_files)]
-# data <- lapply(paste0(clin_dir, "/", clin_files), function(x) read.spss(x, to.data.frame = TRUE))
-# names(data) <- clin_files
-# 
-# clin_scores <- data$BA_.SAV
-# 
-# x <- lapply(data, function(t){
-#   c <- colnames(t)
-#   grep("SCOPA", c)
-#   # apply(t, 2, function(x){
-#   #   # length(intersect(x, clinicalScores$ID))
-#   #   length(grep("3163", x))
-#   # })
-# })
-# lapply(x, max)
-
 clinicalScores <- read.table("../clinical_data/SPSS from excel from Pat IDs with clin and MRI info_for Arlin4_small.txt", 
                   sep = '\t', header = TRUE)
 rownames(clinicalScores) <- clinicalScores$ID
