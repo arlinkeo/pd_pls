@@ -15,7 +15,7 @@ tscores$t <- as.numeric(tscores$t)
 
 # PLS
 x <- roi_expr
-y <- tscores$t # scaling makes no difference
+y <- tscores$t
 # pls-package
 pls_model1 <- plsr(y ~ x, ncomp = 10, scale = TRUE, validation = "LOO") # x is scaled
 pdf("output/pls1_CV_LOO.pdf", 6, 4)
@@ -57,7 +57,7 @@ write.table(tab, file = "output/pls1_scores.txt", quote = FALSE, row.names = FAL
 # })
 # perm_p
 
-# Plot # PLS regression line
+# Plot PLS regression line
 df <- data.frame(
   roi = parcel_lh$id, 
   name = gsub("lh_", "", parcel_lh$name), 
@@ -117,53 +117,61 @@ pdf("output/GSEA_pls1_coef.pdf", 9, 8)
 emapplot(gsea1.1, color = "pvalue")
 dev.off()
 
-# Heatmap of pathways for PLS1 of X
+# heatmap function
+pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name){
+  # create barplot for row and column feature
+  ha_col <- HeatmapAnnotation('T-score of Delta CT' = anno_barplot(column_feature),
+                              height = unit(2, "cm"), annotation_name_gp = gpar(fontsize = 8))
+  ha_row <- rowAnnotation('average PLS coefficient of genes' = anno_barplot(row_feature),
+                          width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
+  # Plot heatmap with barplots along the axes
+  hm <- Heatmap(expr, name = 'Z-Score\nexpression',
+                row_split = ifelse(row_feature > 0, "Positively\ncorrelated pathways", "Negatively\ncorrelated pathways"),
+                # column_split = ifelse(column_feature > 0, "Regions with CT loss ", "Regions with increased CT"),
+                cluster_rows = FALSE,
+                cluster_columns = FALSE,
+                row_names_gp = gpar(fontsize = 6),
+                row_names_side = c("right"),
+                row_title_rot = 90,
+                row_title_gp = gpar(fontsize = 8),
+                row_title_side = "left",
+                column_names_side = c("top"),
+                column_names_gp = gpar(fontsize = 6),
+                column_names_rot = 45,
+                column_title_gp = gpar(fontsize = 8),
+                column_title_side = "bottom",
+                width = unit(ncol(expr)*.5, "lines"),
+                height = unit(nrow(expr)*.5, "lines"),
+                top_annotation = ha_col,
+                right_annotation = ha_row
+  )
+}
+
+# Average expresssion of genes in each significant pathways
 pathways <- gsea1.1@geneSets[gsea1.1@result$ID]
 names(pathways) <- gsea1.1@result$Description
 pathways_avgcoef <- sapply(pathways, function(g){
-  mean(pls1_coef[intersect(ahba.genes(), g)])
+  mean(pls1_coef[intersect(ahba.genes(), g)]) # average PLS coefficient of genes for each significant pathway
 })
 
 exprPathways <- sapply(pathways, function(g){
   g <- intersect(ahba.genes(), g)
   e <- roi_expr[, g]
   apply(e, 1, mean)
+  # c <- pls1_coef[g]
+  # e %*% c
 })
 exprPathways <- t(scale(exprPathways))
 colnames(exprPathways) <- gsub("lh_", "", rois_lh)
-col_order <- order(-y)
+col_order <- order(y)
 row_order <- order(pathways_avgcoef)
 pathways_avgcoef <- pathways_avgcoef[row_order]
 exprPathways <- exprPathways[row_order, col_order]
 
-# significant_regions <- ct_test[ct_test$BH < 0.05, c("Group", "t", "Mean Difference", "BH")]
-# significant_regions <- significant_regions[grep("lh_", significant_regions$Group),]
-# significant_regions$Group <- gsub("lh_|rh_", "", significant_regions$Group)
-# cols <- as.numeric(colnames(exprPathways) %in% significant_regions$Group)
-# cols <- cols*-5+8
-ha_col <- HeatmapAnnotation('T-score of Delta CT' = anno_barplot(y[col_order]), #gp = gpar(fill = cols)),
-                            height = unit(2, "cm"), annotation_name_gp = gpar(fontsize = 8))
-
-ha_row <- rowAnnotation('average PLS coefficient of genes' = anno_barplot(pathways_avgcoef), 
-                        width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
-
-hm <- Heatmap(exprPathways, name = 'Z-Score\nexpression',
-              # split = pathways_avgcoef > 0, 
-              cluster_rows = FALSE,
-              cluster_columns = FALSE,
-              row_names_gp = gpar(fontsize = 6),
-              row_names_side = c("right"),
-              row_title_rot = 0,
-              column_names_side = c("top"),
-              column_names_gp = gpar(fontsize = 6),
-              column_names_rot = 45,
-              width = unit(ncol(exprPathways)*.5, "lines"), 
-              height = unit(nrow(exprPathways)*.5, "lines"),
-              top_annotation = ha_col,
-              right_annotation = ha_row
-)
+# Heatmap of pathways for PLS1 of X
+hm <- pls_heatmap(exprPathways, pathways_avgcoef, y[col_order], 'T-score of Delta CT', 'average PLS coefficient of genes')
 pdf("output/heatmap_pls1_pathways.pdf", 12, 17.5)
-draw(hm, heatmap_legend_side = "left")
+draw(hm, heatmap_legend_side = "right")
 dev.off()
 
 # Small version of heatmap
@@ -178,27 +186,10 @@ rows <- which(rownames(exprPathways) %in% c("Protein folding", "Apoptosis", "Reg
 rows <- c(rows, grep("DNA damage|DNA Damage|SUMO", rownames(exprPathways)))
 rows <- unique(rows)
 rows <- sort(rows)
-exprPathways <- exprPathways[rows, ]
-ha_row <- rowAnnotation('average PLS coefficient of genes' = anno_barplot(pathways_avgcoef[rows], annotation_name_side = "left"), 
-                        width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
-hm <- Heatmap(exprPathways, name = 'Z-Score\nexpression',
-              cluster_rows = FALSE,
-              cluster_columns = FALSE,
-              row_names_gp = gpar(fontsize = 6),
-              row_names_side = c("right"),
-              row_title_rot = 0,
-              column_names_side = c("top"),
-              column_names_gp = gpar(fontsize = 6),
-              column_names_rot = 45,
-              width = unit(ncol(exprPathways)*.5, "lines"), 
-              height = unit(nrow(exprPathways)*.5, "lines"),
-              top_annotation = ha_col,
-              right_annotation = ha_row
-)
-pdf("output/heatmap_pls1_pathways_reduced.pdf", 8, 4.5)
+hm <- pls_heatmap(exprPathways[rows, ], pathways_avgcoef[rows], y[col_order], 'T-score of Delta CT', 'average PLS coefficient of genes')
+pdf("output/heatmap_pls1_pathways_reduced.pdf", 8, 4.6)
 hm
 dev.off()
-
 
 # # Cell-type enrichment
 # markerlist <- readRDS("C:/Users/dkeo/surfdrive/pd_imaging_scn/pd_scn/output/markerlist.rds")
