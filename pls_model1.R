@@ -24,18 +24,10 @@ dev.off()
 summary(pls_model1)
 # explVarX <- explvar(pls_model1)
 # explVarY <- YexplVar(pls_model1)
-pls1_scores <- scores(pls_model1)
-tab <- cbind(ID = rownames(pls1_scores), label = rois_lh, pls1_scores)
+pls1_scores_x <- scores(pls_model1)
+tab <- cbind(ID = rownames(pls1_scores_x), label = rois_lh, pls1_scores_x)
 write.table(tab, file = "output/pls1_scores.txt", quote = FALSE, row.names = FALSE, sep = "\t")
-
-# # plsdepot package
-# pls_model1 <- plsreg1(x, y, comps = 10, crosval = TRUE)
-# explVarX <- pls_model1$R2Xy
-# explVarX <- explVarX[-nrow(explVarX),]
-# explVarX <- apply(explVarX, 2, sum)/nrow(explVarX) # average explained variance of X across variables
-# explVarY <- pls_model1$R2
-# pls_scores <- pls_model1$x.scores
-# # plot(pls_model1b$Q2[,1])
+pls1_scores_y <- pls_model1$Yscores
 
 # system.time(
 # # PLS model 1 permutation test of components
@@ -61,7 +53,7 @@ write.table(tab, file = "output/pls1_scores.txt", quote = FALSE, row.names = FAL
 df <- data.frame(
   roi = parcel_lh$id, 
   name = gsub("lh_", "", parcel_lh$name), 
-  pls1 = pls1_scores[,1],
+  pls1 = pls1_scores_x[,1],
   tscores = y)
 df$name[which(!((df$pls1 %in% range(df$pls1)) | (df$tscores %in% range(df$tscores))))] <- ""
 p <- ggplot(df, aes(pls1, tscores)) +
@@ -76,8 +68,10 @@ pdf("output/PLS1_tscores.pdf", 4, 3)
 p
 dev.off()
 
-# Genes ranked by coefficients of 1st component
-pls1_coef <- sort(pls_model1$coefficients[,1,1], decreasing = TRUE) # sort genes by pls1 coefficients
+# Genes ranked by projection of 1st component of X
+gene_weights1 <- sort(pls_model1$projection[,1], decreasing = TRUE) # sort genes by pls1 projection
+tab <- data.frame(Gene = entrezId2Name(names(gene_weights1)), Weight = gene_weights1)
+write.table(tab, file = "output/plsmodel1_geneweights.txt", quote = FALSE, sep = "\t", row.names = FALSE)
 # pls1_coef <- sort(pls_model1$coefficients[,1,1], decreasing = TRUE) # sort genes by pls1 coefficients
 # write.table(entrezId2Name(names(pls1_coef)), file = "output/pls1_coef.txt", quote = FALSE, sep = "\t", 
 #             col.names = FALSE, row.names = FALSE)
@@ -107,23 +101,26 @@ pls1_coef <- sort(pls_model1$coefficients[,1,1], decreasing = TRUE) # sort genes
 # dev.off()
 
 # Functional enrichment with Reactome PA and GSEA
-gsea1.1 <- gsePathway(pls1_coef, organism = "human", pAdjustMethod = "BH")
+gsea1.1 <- gsePathway(gene_weights1, organism = "human", pAdjustMethod = "BH")
 df <- as.data.frame(gsea1.1)
 df <- df[, c("Description", "p.adjust")]
 df$p.adjust <- format(df$p.adjust, digits = 3, scientific = TRUE)
-write.table(df, file = "output/GSEA_pls1_coef.txt", quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(df, file = "output/GSEA_plsmodel1_comp1.txt", quote = FALSE, sep = "\t", row.names = FALSE)
 options(stringsAsFactors = TRUE)
-pdf("output/GSEA_pls1_coef.pdf", 9, 8)
+pdf("output/GSEA_plsmodel1_comp1.pdf", 9, 8)
 emapplot(gsea1.1, color = "pvalue")
 dev.off()
+options(stringsAsFactors = FALSE)
 
 # heatmap function
 pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name){
   # create barplot for row and column feature
-  ha_col <- HeatmapAnnotation('T-score of Delta CT' = anno_barplot(column_feature),
+  ha_col <- HeatmapAnnotation(a = anno_barplot(column_feature),
                               height = unit(2, "cm"), annotation_name_gp = gpar(fontsize = 8))
-  ha_row <- rowAnnotation('average PLS coefficient of genes' = anno_barplot(row_feature),
+  names(ha_col) <- column_name
+  ha_row <- rowAnnotation(b = anno_barplot(row_feature),
                           width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
+  names(ha_row) <- row_name
   # Plot heatmap with barplots along the axes
   hm <- Heatmap(expr, name = 'Z-Score\nexpression',
                 row_split = ifelse(row_feature > 0, "Positively\ncorrelated pathways", "Negatively\ncorrelated pathways"),
@@ -147,13 +144,14 @@ pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name
   )
 }
 
-# Average expresssion of genes in each significant pathways
+# Get genesets of significant pathways abnd average the PLS coefficients of genes
 pathways <- gsea1.1@geneSets[gsea1.1@result$ID]
 names(pathways) <- gsea1.1@result$Description
-pathways_avgcoef <- sapply(pathways, function(g){
-  mean(pls1_coef[intersect(ahba.genes(), g)]) # average PLS coefficient of genes for each significant pathway
+pathways_avgweight <- sapply(pathways, function(g){
+  mean(gene_weights1[intersect(ahba.genes(), g)]) # average gene weights for each significant pathway
 })
 
+# Average expresssion of genes in each significant pathways
 exprPathways <- sapply(pathways, function(g){
   g <- intersect(ahba.genes(), g)
   e <- roi_expr[, g]
@@ -164,43 +162,49 @@ exprPathways <- sapply(pathways, function(g){
 exprPathways <- t(scale(exprPathways))
 colnames(exprPathways) <- gsub("lh_", "", rois_lh)
 col_order <- order(y)
-row_order <- order(pathways_avgcoef)
-pathways_avgcoef <- pathways_avgcoef[row_order]
+row_order <- order(pathways_avgweight)
+pathways_avgweight <- pathways_avgweight[row_order]
 exprPathways <- exprPathways[row_order, col_order]
 
 # Heatmap of pathways for PLS1 of X
-hm <- pls_heatmap(exprPathways, pathways_avgcoef, y[col_order], 'T-score of Delta CT', 'average PLS coefficient of genes')
-pdf("output/heatmap_pls1_pathways.pdf", 12, 17.5)
-draw(hm, heatmap_legend_side = "right")
+hm <- pls_heatmap(exprPathways, pathways_avgweight, y[col_order], 'average gene weight', 'T-score of Delta CT')
+pdf("output/heatmap_plsmodel1_comp1.pdf", 11.7, 11.2) #12.2, 17.5)
+draw(hm, heatmap_legend_side = "left")
 dev.off()
 
 # Small version of heatmap
-rows <- which(rownames(exprPathways) %in% c("Protein folding", "Apoptosis", "Regulation of RAS by GAPs", 
-       "Cellular response to hypoxia", "Regulation of mitotic cell cycle",
-       "Mitochondrial protein import", "Mitochondrial translation",
-       "p53−Independent DNA Damage Response",
-       "Stabilization of p53", "APC/C:Cdc20 mediated degradation of mitotic proteins",
-       "Signaling by Interleukins", 
-       "Circadian Clock", "Transcriptional Regulation by MECP2", 
-       "Chromatin organization", "Nucleotide Excision Repair"))
-rows <- c(rows, grep("DNA damage|DNA Damage|SUMO", rownames(exprPathways)))
+# rows <- which(rownames(exprPathways) %in% c("Protein folding", "Apoptosis", "Regulation of RAS by GAPs", 
+#        "Cellular response to hypoxia", "Regulation of mitotic cell cycle",
+#        "Mitochondrial protein import", "Mitochondrial translation",
+#        "p53−Independent DNA Damage Response",
+#        "Stabilization of p53", "APC/C:Cdc20 mediated degradation of mitotic proteins",
+#        "Signaling by Interleukins", 
+#        "Circadian Clock", "Transcriptional Regulation by MECP2", 
+#        "Chromatin organization", "Nucleotide Excision Repair"))
+# rows <- c(rows, grep("DNA damage|DNA Damage|SUMO", rownames(exprPathways)))
+rows <- which(rownames(exprPathways) %in% c("Regulation of Apoptosis", "Regulation of RAS by GAPs",
+                                            "Autodegradation of the E3 ubiquitin ligase COP1",
+                                            "Regulation of mitotic cell cycle",
+                                            "Signaling by cytosolic FGFR1 fusion mutants",
+                                            "Class C/3 (Metabotropic glutamate/pheromone receptors)"))
+rows <- c(rows, grep("DNA damage|DNA Damage|degradation|SUMO|Mitochondrial|p53|chromati", rownames(exprPathways)))
 rows <- unique(rows)
 rows <- sort(rows)
-hm <- pls_heatmap(exprPathways[rows, ], pathways_avgcoef[rows], y[col_order], 'T-score of Delta CT', 'average PLS coefficient of genes')
-pdf("output/heatmap_pls1_pathways_reduced.pdf", 8, 4.6)
+hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'T-score of Delta CT', 'average PLS coefficient of genes')
+pdf("output/heatmap_plsmodel1_comp1_reduced.pdf", 10, 5.6)
 hm
 dev.off()
 
 # # Cell-type enrichment
 # markerlist <- readRDS("C:/Users/dkeo/surfdrive/pd_imaging_scn/pd_scn/output/markerlist.rds")
-# celltype_enrichment <- hypertest.or.table(list(names(pls1_coef[1:200])), markerlist, 20017) # 3d-array: cell-types x measures x deg-type
+# celltype_enrichment <- hypertest.or.table(list(names(gene_weights1[1:200])), markerlist, 20017) # 3d-array: cell-types x measures x deg-type
 # apply(celltype_enrichment, 3, function(x){
 #   x[x[, "bh"] < 0.05, ]
 # })
-
+# 
 # # Disease enrichment
 # disease_list <- readRDS("C:/Users/dkeo/surfdrive/pd_imaging_scn/pd_scn/output/disease_genes.rds")
-# celltype_enrichment <- hypertest.or.table(list(names(pls1_coef[1:50])), disease_list, 20017) # 3d-array: cell-types x measures x deg-type
+# celltype_enrichment <- hypertest.or.table(list(names(gene_weights1[1:200])), disease_list, 20017) # 3d-array: cell-types x measures x deg-type
 # apply(celltype_enrichment, 3, function(x){
 #   x[x[, "bh"] < 0.05, ]
 # })
