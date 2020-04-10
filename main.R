@@ -11,11 +11,11 @@ library(circlize)
 library(dplyr)
 library(DescTools)
 library(ggpubr)
+
 library(abind)
 library('ReactomePA')
 library(foreign)
 library(reshape2)
-
 # Useful variables
 donorNames <- c("donor9861", "donor10021", "donor12876", "donor14380", "donor15496", "donor15697")
 names(donorNames) <- donorNames
