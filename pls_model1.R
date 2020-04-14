@@ -104,7 +104,8 @@ write.table(tab, file = "output/plsmodel1_geneweights.txt", quote = FALSE, sep =
 gsea1.1 <- gsePathway(gene_weights1, organism = "human", pAdjustMethod = "BH")
 df <- as.data.frame(gsea1.1)
 df <- df[, c("Description", "p.adjust")]
-df$p.adjust <- format(df$p.adjust, digits = 3, scientific = TRUE)
+df$Pvalue <- format(df$p.adjust, digits = 3, scientific = TRUE)
+
 write.table(df, file = "output/GSEA_plsmodel1_comp1.txt", quote = FALSE, sep = "\t", row.names = FALSE)
 options(stringsAsFactors = TRUE)
 pdf("output/GSEA_plsmodel1_comp1.pdf", 9, 8)
@@ -144,7 +145,7 @@ pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name
   )
 }
 
-# Get genesets of significant pathways abnd average the PLS coefficients of genes
+# Get genesets of significant pathways and average the gene weights
 pathways <- gsea1.1@geneSets[gsea1.1@result$ID]
 names(pathways) <- gsea1.1@result$Description
 pathways_avgweight <- sapply(pathways, function(g){
