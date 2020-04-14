@@ -172,6 +172,17 @@ pdf("output/heatmap_plsmodel1_comp1.pdf", 11.7, 11.2) #12.2, 17.5)
 draw(hm, heatmap_legend_side = "left")
 dev.off()
 
+# # Heatmap of top30 most significant pathways that are shown in the emapplot
+# # top30pathways <- gsea1.1@result[1:30,"Description"]
+# top30pathways <- names(sort(abs(pathways_avgweight), decreasing = TRUE)[1:30])
+# rows <- which(rownames(exprPathways) %in% top30pathways)
+# rows <- sort(rows)
+# hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 
+#                   'average PLS coefficient of genes', paste0('PLS component-', i, ' score of Betas'))
+# pdf(paste0("output/heatmap_plsmodel1_", gsub("Comp ", "comp", i), "_top30.pdf"), 10, 5)
+# draw(hm, heatmap_legend_side = "left")
+# dev.off()
+
 # Small version of heatmap
 # rows <- which(rownames(exprPathways) %in% c("Protein folding", "Apoptosis", "Regulation of RAS by GAPs", 
 #        "Cellular response to hypoxia", "Regulation of mitotic cell cycle",
@@ -182,17 +193,33 @@ dev.off()
 #        "Circadian Clock", "Transcriptional Regulation by MECP2", 
 #        "Chromatin organization", "Nucleotide Excision Repair"))
 # rows <- c(rows, grep("DNA damage|DNA Damage|SUMO", rownames(exprPathways)))
-rows <- which(rownames(exprPathways) %in% c("Regulation of Apoptosis", "Regulation of RAS by GAPs",
-                                            "Autodegradation of the E3 ubiquitin ligase COP1",
+rows <- which(rownames(exprPathways) %in% c("Autodegradation of the E3 ubiquitin ligase COP1",
+                                            "DNA Damage Recognition in GG−NER", 
+                                            "p53−Independent G1/S DNA damage checkpoint", 
+                                            "p53−Dependent G1/S DNA damage checkpoint",
+                                            "Ubiquitin−dependent degradation of Cyclin D",
+                                            "Stabilization of p53",
+                                            "Regulation of Apoptosis", 
+                                            "Autodegradation of Cdh1 by Cdh1:APC/C",
+                                            "Regulation of RAS by GAPs",
+                                            "Mitochondrial translation elongation",
+                                            "Mitochondrial translation initiation",
+                                            "Orc1 removal from chromatin",
+                                            "Mitochondrial protein import",
+                                            "Mitochondrial translation termination",
+                                            "Mitochondrial translation",
+                                            "APC/C:Cdc20 mediated degradation of mitotic proteins",
+                                            "APC/C−mediated degradation of cell cycle proteins",
                                             "Regulation of mitotic cell cycle",
+                                            "SUMOylation of chromatin organization proteins",
                                             "Signaling by cytosolic FGFR1 fusion mutants",
                                             "Class C/3 (Metabotropic glutamate/pheromone receptors)"))
-rows <- c(rows, grep("DNA damage|DNA Damage|degradation|SUMO|Mitochondrial|p53|chromati", rownames(exprPathways)))
-rows <- unique(rows)
+# rows <- c(rows, grep("DNA damage|DNA Damage|degradation|SUMO|Mitochondrial|p53|chromati", rownames(exprPathways)))
+# rows <- unique(rows)
 rows <- sort(rows)
-hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'T-score of Delta CT', 'average PLS coefficient of genes')
-pdf("output/heatmap_plsmodel1_comp1_reduced.pdf", 10, 5.6)
-hm
+hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'average gene weight', 'T-score of Delta CT')
+pdf("output/heatmap_plsmodel1_comp1_reduced.pdf", 8.1, 4.25)
+draw(hm, heatmap_legend_side = "left")
 dev.off()
 
 # # Cell-type enrichment
