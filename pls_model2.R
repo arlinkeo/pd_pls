@@ -23,23 +23,23 @@ t <- t(coef_eq1["t value", , ])
 q1 <- max(quantile(abs(t), 0.9))
 col_fun <- colorRamp2(c(-q1, 0, q1), c("blue", "#EEEEEE", "red"))# Heat colors centered around 0
 hm1 <- Heatmap(t, name = "T-score\nof slope",
-              col = col_fun,
-              cluster_rows = FALSE,
-              row_names_gp = gpar(fontsize = 10),
-              row_names_side = c("left"),
-              row_title_rot = 0,
-              column_names_side = c("top"),
-              column_names_gp = gpar(fontsize = 10),
-              width = unit(ncol(t)*.8, "lines"), 
-              height = unit(nrow(t)*.8, "lines"),
-              heatmap_legend_param = list(title_position = "topleft"),
-              cell_fun = function(i, j, x, y, width, height, fill) {
-                if(t(coef_eq1["BH", i, j]) < 0.05) {
-                  grid.text("*", x = x, y = y)
-                } else {
-                  grid.text("", x = x, y = y)
-                }
-              }
+               col = col_fun,
+               cluster_rows = FALSE,
+               row_names_gp = gpar(fontsize = 10),
+               row_names_side = c("left"),
+               row_title_rot = 0,
+               column_names_side = c("top"),
+               column_names_gp = gpar(fontsize = 10),
+               width = unit(ncol(t)*.8, "lines"), 
+               height = unit(nrow(t)*.8, "lines"),
+               heatmap_legend_param = list(title_position = "topleft"),
+               cell_fun = function(i, j, x, y, width, height, fill) {
+                 if(t(coef_eq1["BH", i, j]) < 0.05) {
+                   grid.text("*", x = x, y = y)
+                 } else {
+                   grid.text("", x = x, y = y)
+                 }
+               }
 )
 pdf("output/heatmap_clinical_scores.pdf", 7.8, 3.8)
 hm1
@@ -171,7 +171,7 @@ emapplot(gsea2$`Comp 2`, color = "pvalue")
 emapplot(gsea2$`Comp 3`, color = "pvalue")
 dev.off()
 options(stringsAsFactors = FALSE)
-  
+
 # Overlap pathways
 p <- lapply(gsea2, function(gsea){
   gsea@result$ID
@@ -206,7 +206,7 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   
   # Heatmap of pathways for PLS component i
   hm <- pls_heatmap(exprPathways, pathways_avgweight, pls2_scores_y[col_order, i], 
-                    'average PLS coefficient of genes', paste0('PLS component-', i, ' score of Betas'))
+                    'average gene weight', paste0('PLS component-', i, ' score of Betas'))
   pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 12.2, length(pathways)/10+2.2)
   draw(hm, heatmap_legend_side = "left")
   dev.off()
@@ -214,7 +214,7 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   # Heatmap of top10 +ve and -ve correlated pathways
   idx <- c(c(1:10), c((length(pathways_avgweight)-9):length(pathways_avgweight)))
   hm <- pls_heatmap(exprPathways[idx, ], pathways_avgweight[idx], pls2_scores_y[col_order, i], 
-                    'average PLS coefficient of genes', paste0('PLS component-', i, ' score of Betas'))
+                    'average gene weight', paste0('PLS component-', i, ' score of Betas'))
   pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top10.pdf"), 10, 4.2)
   draw(hm, heatmap_legend_side = "left")
   dev.off()
