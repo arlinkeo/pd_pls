@@ -52,7 +52,7 @@ dev.off()
 # })
 # perm_p
 
-# Plot
+# Scatter plot
 p <- lapply(c(1:3), function(i){
   df <- data.frame(
     roi = parcel_lh$id, 
@@ -181,3 +181,26 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   dev.off()
   
 })
+
+# Scatter plots to show correlation between component scores of the predictor variables and each response variable
+p <- lapply(colnames(y), function(yi){
+  p <- lapply(c(1:2), function(i){
+    df <- data.frame(name = rownames(y), x = pls_model2$scores[,i], y = y[, yi])
+    df$name[which(!((df$x %in% range(df$x) | (df$y %in% range(df$y)))))] <- ""
+    r <- round(cor(df$x, df$y), digits = 2)
+    p <- ggplot(df, aes(x, y)) +
+      geom_point(color = "blue") + geom_smooth(method = "lm") +
+      geom_text_repel(aes(label = name), size = 3) +
+      labs(x = bquote('PLS'~italic('component-'*.(i))~"of gene expression"),
+           y = bquote(atop(italic('t')*'-score of relationship between', 'CT and '~.(yi)))) +
+      geom_hline(yintercept=0, linetype="dashed", color = "gray") +
+      geom_vline(xintercept=0, linetype="dashed", color = "gray") +
+      ggtitle(bquote(italic('r')~"="~.(r))) +
+      theme_classic()
+    p
+  })
+})
+p <- unlist(p, recursive = FALSE)
+pdf("output/scatterplots_plsmodel2_responses.pdf", 8, 33)
+ggarrange(plotlist = p, nrow = 11, ncol = 2)
+dev.off()
