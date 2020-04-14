@@ -112,12 +112,17 @@ gene_weights2 <- sapply(colnames(pls_model2$projection)[1:3], function(n){
 # Functional enrichment with Reactome PA and GSEA
 gsea2 <- sapply(names(gene_weights2)[1:3], function(i){
   gsea <- gsePathway(gene_weights2[[i]], organism = "human", pAdjustMethod = "BH")
-  df <- as.data.frame(gsea)
-  df <- df[, c("Description", "p.adjust")]
-  df$p.adjust <- format(df$p.adjust, digits = 3, scientific = TRUE)
-  write.table(df, file = paste0("output/GSEA_plsmodel2_", gsub("Comp ", "comp", i), ".txt"), quote = FALSE, sep = "\t", row.names = FALSE)
   gsea
 }, simplify = FALSE)
+
+# Write tables
+lapply(names(gsea2), function(i){
+  df <- as.data.frame(gsea2[[i]])
+  df <- df[, c("Description", "p.adjust")]
+  df$p.adjust <- format(df$p.adjust, digits = 3, scientific = TRUE)
+  names(df) <- c("Pathway", "P-value")
+  write.table(df, file = paste0("output/GSEA_plsmodel2_", gsub("Comp ", "comp", i), ".txt"), quote = FALSE, sep = "\t", row.names = FALSE)
+})
 
 # Emapplots
 options(stringsAsFactors = TRUE)
