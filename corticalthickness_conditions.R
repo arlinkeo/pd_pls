@@ -35,7 +35,7 @@ write.table(tab, file = "output/cortical_thickness_conditions1.txt", quote = FAL
 tab <- tab[order(tab$`BH-corrected P`), ]
 tab[, c(3)] <- as.numeric(tab[, c(3)])
 tab[, c(4)] <- as.numeric(tab[, c(4)])
-tab[, c(3:6)] <- round(tab[, c(3:6)], digits = 3)
+tab[, c(3:6)] <- format(round(tab[, c(3:6)], digits = 2), nsmall = 2)
 signif_rows <- tab$`BH-corrected P` < 0.05
 tab$`BH-corrected P` <- format(tab$`BH-corrected P`, scientific = TRUE, digits = 3)
 write.table(tab, file = "output/cortical_thickness_conditions2.txt", quote = FALSE, row.names = FALSE, sep = "\t")
