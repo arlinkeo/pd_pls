@@ -174,10 +174,10 @@ options(stringsAsFactors = FALSE)
 
 # Overlap pathways
 p <- lapply(gsea2, function(gsea){
-  gsea@result$ID
+  gsea@result$Description
 })
 lengths(p)
-overlapping_pathways <- Reduce(intersect, p[[1:2]])
+overlapping_pathways <- intersect(p$`Comp 1`, p$`Comp 2`)
 length(overlapping_pathways)
 sapply(p, function(x) length(intersect(x, gsea1.1@result$ID))) # overlap with PLS model-1
 
@@ -206,7 +206,7 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   
   # Heatmap of pathways for PLS component i
   hm <- pls_heatmap(exprPathways, pathways_avgweight, pls2_scores_y[col_order, i], 
-                    'average gene weight', paste0('PLS component-', i, ' score of Betas'))
+                    'average gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
   pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 12.2, length(pathways)/10+2.2)
   draw(hm, heatmap_legend_side = "left")
   dev.off()
@@ -214,7 +214,7 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   # Heatmap of top10 +ve and -ve correlated pathways
   idx <- c(c(1:10), c((length(pathways_avgweight)-9):length(pathways_avgweight)))
   hm <- pls_heatmap(exprPathways[idx, ], pathways_avgweight[idx], pls2_scores_y[col_order, i], 
-                    'average gene weight', paste0('PLS component-', i, ' score of Betas'))
+                    'average gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
   pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top10.pdf"), 10, 4.2)
   draw(hm, heatmap_legend_side = "left")
   dev.off()
