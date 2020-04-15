@@ -12,7 +12,7 @@ library(ggpubr)
 library(abind)
 library('ReactomePA')
 library(foreign)
-library(reshape2)
+library(ggrepel)
 
 # Useful variables
 donorNames <- c("donor9861", "donor10021", "donor12876", "donor14380", "donor15496", "donor15697")
