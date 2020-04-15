@@ -183,8 +183,8 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
 })
 
 # Scatter plots to show correlation between component scores of the predictor variables and each response variable
-p <- lapply(colnames(y), function(yi){
-  p <- lapply(c(1:2), function(i){
+p <- lapply(c(1:2), function(i){
+  p <- lapply(colnames(y), function(yi){
     df <- data.frame(name = rownames(y), x = pls_model2$scores[,i], y = y[, yi])
     df$name[which(!((df$x %in% range(df$x) | (df$y %in% range(df$y)))))] <- ""
     r <- round(cor(df$x, df$y), digits = 2)
@@ -201,6 +201,6 @@ p <- lapply(colnames(y), function(yi){
   })
 })
 p <- unlist(p, recursive = FALSE)
-pdf("output/scatterplots_plsmodel2_responses.pdf", 8, 33)
-ggarrange(plotlist = p, nrow = 11, ncol = 2)
+pdf("output/scatterplots_plsmodel2_responses.pdf", 44, 8)
+ggarrange(plotlist = p, nrow = 2, ncol = 11)
 dev.off()
