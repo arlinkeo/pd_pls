@@ -184,23 +184,28 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
 
 # Scatter plots to show correlation between component scores of the predictor variables and each response variable
 p <- lapply(c(1:2), function(i){
+  comp <- paste0('component-', i)
   p <- lapply(colnames(y), function(yi){
     df <- data.frame(name = rownames(y), x = pls_model2$scores[,i], y = y[, yi])
     df$name[which(!((df$x %in% range(df$x) | (df$y %in% range(df$y)))))] <- ""
     r <- round(cor(df$x, df$y), digits = 2)
+    l <- format(pls_model2$Yloadings[yi, i], digits = 2, scientific = TRUE)
     p <- ggplot(df, aes(x, y)) +
       geom_point(color = "blue") + geom_smooth(method = "lm") +
-      geom_text_repel(aes(label = name), size = 3) +
-      labs(x = bquote('PLS'~italic('component-'*.(i))~"of gene expression"),
-           y = bquote(atop(italic('t')*'-score of relationship between', 'CT and '~.(yi)))) +
+      geom_text_repel(aes(label = name), size = 5) +
+      labs(x = bquote('PLS'~italic(.(comp))~"of gene expression"),
+           y = bquote(atop(italic('t')*'-statistic of relationship between', 'CT and '~.(yi)))) +
       geom_hline(yintercept=0, linetype="dashed", color = "gray") +
       geom_vline(xintercept=0, linetype="dashed", color = "gray") +
-      ggtitle(bquote(italic('r')~"="~.(r))) +
+      ggtitle(bquote(italic('r')~"="~.(r)~'y-loading ='~.(l))) +
       theme_classic()
     p
   })
+  p[["text"]] <- textGrob(bquote('PLS'~italic(.(comp))), gp = gpar(fontsize = 24))
+  p[c(12,1:11)]
 })
 p <- unlist(p, recursive = FALSE)
-pdf("output/scatterplots_plsmodel2_responses.pdf", 44, 8)
-ggarrange(plotlist = p, nrow = 2, ncol = 11)
+pdf("output/scatterplots_plsmodel2_responses.pdf", 24, 16)
+grid.arrange(grobs = p, layout_matrix = matrix(c(1:24), nrow = 4, byrow = TRUE))
+grid.lines(x = unit(c(0,1), "npc"), y = unit(c(.5,.5), "npc"))
 dev.off()
