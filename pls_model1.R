@@ -59,7 +59,7 @@ df$name[which(!((df$pls1 %in% range(df$pls1)) | (df$tscores %in% range(df$tscore
 p <- ggplot(df, aes(pls1, tscores)) +
   geom_point(color = "blue", size = 2) + geom_smooth(method = "lm") +
   geom_text_repel(aes(label = name), size = 3, force = 2) +
-  labs(x = "PLS component 1 score", y = expression("T-score of "~Delta~"CT")) +
+  labs(x = bquote('PLS'~italic('component-1')~'score'), y = bquote(italic('t')*'-statistic of '~Delta~'CT')) +
   geom_hline(yintercept=0, linetype="dashed", color = "gray") +
   geom_vline(xintercept=0, linetype="dashed", color = "gray") +
   ggtitle(paste("r =", round(cor(df$pls1, y), digits = 2))) +
@@ -168,7 +168,7 @@ pathways_avgweight <- pathways_avgweight[row_order]
 exprPathways <- exprPathways[row_order, col_order]
 
 # Heatmap of pathways for PLS1 of X
-hm <- pls_heatmap(exprPathways, pathways_avgweight, y[col_order], 'average gene weight', 'T-score of Delta CT')
+hm <- pls_heatmap(exprPathways, pathways_avgweight, y[col_order], 'average gene weight', 't-statistic of Delta CT')
 pdf("output/heatmap_plsmodel1_comp1.pdf", 11.7, 11.2) #12.2, 17.5)
 draw(hm, heatmap_legend_side = "left")
 dev.off()
@@ -218,7 +218,7 @@ rows <- which(rownames(exprPathways) %in% c("Autodegradation of the E3 ubiquitin
 # rows <- c(rows, grep("DNA damage|DNA Damage|degradation|SUMO|Mitochondrial|p53|chromati", rownames(exprPathways)))
 # rows <- unique(rows)
 rows <- sort(rows)
-hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'average gene weight', 'T-score of Delta CT')
+hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'average gene weight', 't-statistic of Delta CT')
 pdf("output/heatmap_plsmodel1_comp1_reduced.pdf", 8.1, 4.25)
 draw(hm, heatmap_legend_side = "left")
 dev.off()
