@@ -64,7 +64,7 @@ p <- ggplot(df, aes(pls1, tscores)) +
   geom_vline(xintercept=0, linetype="dashed", color = "gray") +
   ggtitle(paste("r =", round(cor(df$pls1, y), digits = 2))) +
   theme_classic()
-pdf("output/PLS1_tscores.pdf", 4, 3)
+pdf("output/scatterplot_plsmodel1_tstats.pdf", 4, 3)
 p
 dev.off()
 
@@ -101,30 +101,32 @@ write.table(tab, file = "output/plsmodel1_geneweights.txt", quote = FALSE, sep =
 # dev.off()
 
 # Functional enrichment with Reactome PA and GSEA
-gsea1.1 <- gsePathway(gene_weights1, organism = "human", pAdjustMethod = "BH")
-df <- as.data.frame(gsea1.1)
+# abs.geneweights <- sort(abs(gene_weights1), decreasing = TRUE)
+gsea1 <- gsePathway(geneweights1, organism = "human", pAdjustMethod = "BH")
+df <- as.data.frame(gsea1)
 df <- df[, c("Description", "p.adjust")]
 df$p.adjust <- format(df$p.adjust, digits = 3, scientific = TRUE)
 names(df) <- c("Pathway", "P-value")
 write.table(df, file = "output/GSEA_plsmodel1_comp1.txt", quote = FALSE, sep = "\t", row.names = FALSE)
 options(stringsAsFactors = TRUE)
 pdf("output/GSEA_plsmodel1_comp1.pdf", 9, 8)
-emapplot(gsea1.1, color = "pvalue")
+emapplot(gsea1, color = "pvalue")
 dev.off()
 options(stringsAsFactors = FALSE)
 
 # heatmap function
 pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name){
-  # create barplot for row and column feature
+  # column annotation (t-statistics of Delta CT)
   ha_col <- HeatmapAnnotation(a = anno_barplot(column_feature),
                               height = unit(2, "cm"), annotation_name_gp = gpar(fontsize = 8))
   names(ha_col) <- column_name
-  ha_row <- rowAnnotation(b = anno_barplot(row_feature),
+  # row annotation (gene weights within pathway)
+  ha_row <- rowAnnotation(b = anno_boxplot(row_feature), 
                           width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
   names(ha_row) <- row_name
-  # Plot heatmap with barplots along the axes
+  # Plot heatmap with annotation along the axes
   hm <- Heatmap(expr, name = 'Z-Score\nexpression',
-                row_split = ifelse(row_feature > 0, "Positively\ncorrelated pathways", "Negatively\ncorrelated pathways"),
+                # row_split = ifelse(sapply(row_feature, median) > 0, "Positively\ncorrelated pathways", "Negatively\ncorrelated pathways"),
                 # column_split = ifelse(column_feature > 0, "Regions with CT loss ", "Regions with increased CT"),
                 cluster_rows = FALSE,
                 cluster_columns = FALSE,
@@ -143,34 +145,47 @@ pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name
                 top_annotation = ha_col,
                 right_annotation = ha_row
   )
+  draw(hm, heatmap_legend_side = "left")
+  # add vertical line at 0 in row annotation plot
+  decorate_annotation(row_name, {
+    grid.lines(c(0, 0), c(0.5, nrow(expr)+0.5), default.units = "native",
+               gp = gpar(lty = 1, col = "red"))
+  })
 }
 
 # Get genesets of significant pathways and average the gene weights
-pathways <- gsea1.1@geneSets[gsea1.1@result$ID]
-names(pathways) <- gsea1.1@result$Description
-pathways_avgweight <- sapply(pathways, function(g){
-  mean(gene_weights1[intersect(ahba.genes(), g)]) # average gene weights for each significant pathway
+pathways <- gsea1@geneSets[gsea1@result$ID]
+names(pathways) <- gsea1@result$Description
+pathways_weight <- lapply(pathways, function(g){
+  gene_weights1[intersect(ahba.genes(), g)]
 })
+# df <- melt(pathways_weight)
+# colnames(df) <- c("weight", "pathway")
+# df$pathway <- factor(df$pathway, levels = unique(df$pathway))
+# ggplot(df) +
+#   geom_boxplot(aes(pathway, weight)) +
+#   geom_hline(yintercept=0) + 
+#   coord_flip()
 
 # Average expresssion of genes in each significant pathways
 exprPathways <- sapply(pathways, function(g){
   g <- intersect(ahba.genes(), g)
   e <- roi_expr[, g]
   apply(e, 1, mean)
-  # c <- pls1_coef[g]
+  # c <- gene_weights1[g]
   # e %*% c
 })
 exprPathways <- t(scale(exprPathways))
 colnames(exprPathways) <- gsub("lh_", "", rois_lh)
 col_order <- order(y)
-row_order <- order(pathways_avgweight)
-pathways_avgweight <- pathways_avgweight[row_order]
-exprPathways <- exprPathways[row_order, col_order]
+# row_order <- order(pathways_avgweight)
+# pathways_avgweight <- pathways_avgweight[row_order]
+# exprPathways <- exprPathways[row_order, col_order]
+exprPathways <- exprPathways[, col_order]
 
 # Heatmap of pathways for PLS1 of X
-hm <- pls_heatmap(exprPathways, pathways_avgweight, y[col_order], 'average gene weight', 't-statistic of Delta CT')
 pdf("output/heatmap_plsmodel1_comp1.pdf", 11.7, 11.2) #12.2, 17.5)
-draw(hm, heatmap_legend_side = "left")
+pls_heatmap(exprPathways, pathways_weight, y[col_order], 'gene weight', 't-statistic of Delta CT')
 dev.off()
 
 # # Heatmap of top30 most significant pathways that are shown in the emapplot
@@ -218,9 +233,10 @@ rows <- which(rownames(exprPathways) %in% c("Autodegradation of the E3 ubiquitin
 # rows <- c(rows, grep("DNA damage|DNA Damage|degradation|SUMO|Mitochondrial|p53|chromati", rownames(exprPathways)))
 # rows <- unique(rows)
 rows <- sort(rows)
-hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'average gene weight', 't-statistic of Delta CT')
+# hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'average gene weight', 't-statistic of Delta CT')
 pdf("output/heatmap_plsmodel1_comp1_reduced.pdf", 8.1, 4.25)
-draw(hm, heatmap_legend_side = "left")
+# draw(hm, heatmap_legend_side = "left")
+hm <- pls_heatmap(exprPathways[rows, ], pathways_weight[rows], y[col_order], 'gene weight', 't-statistic of Delta CT')
 dev.off()
 
 # # Cell-type enrichment
