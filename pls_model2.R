@@ -84,31 +84,6 @@ gene_weights2 <- sapply(colnames(pls_model2$projection)[1:3], function(n){
   r
 }, simplify = FALSE)
 
-# # Heatmap top rank genes
-# hm <- apply(pls2_coef, 2, function(c){
-#   exprTopGenes <- scale(x[, c[1:50]])
-#   colnames(exprTopGenes) <- entrezId2Name(colnames(exprTopGenes))
-#   rownames(exprTopGenes) <- gsub("lh_", "", rois_lh)
-#   # row_order <- order(-y)
-#   # exprTopGenes <- exprTopGenes[row_order, ] # order regions by T-score of delta CT
-#   # ha <- rowAnnotation('T-score' = anno_barplot(y[row_order]), width = unit(4, "cm"))
-#   hm <- Heatmap(exprTopGenes, name = 'Z-Score\nexpression',
-#                 cluster_rows = FALSE,
-#                 cluster_columns = FALSE,
-#                 row_names_gp = gpar(fontsize = 10),
-#                 row_names_side = c("left"),
-#                 row_title_rot = 0,
-#                 column_names_side = c("top"),
-#                 column_names_gp = gpar(fontsize = 10, fontface = "italic"),
-#                 column_names_rot = 45,
-#                 width = unit(ncol(exprTopGenes)*.8, "lines"), 
-#                 height = unit(nrow(exprTopGenes)*.8, "lines")
-#   )
-# })
-# pdf("output/heatmap_pls2_topgenes.pdf", 28, 6.7)
-# draw(Reduce('+', hm), gap = unit(2, "cm")) # Reduce('+', hm)
-# dev.off()
-
 # Functional enrichment with Reactome PA and GSEA
 gsea2 <- sapply(names(gene_weights2)[1:3], function(i){
   gsea <- gsePathway(gene_weights2[[i]], organism = "human", pAdjustMethod = "BH")
@@ -140,18 +115,18 @@ p <- lapply(gsea2, function(gsea){
 lengths(p)
 overlapping_pathways <- intersect(p$`Comp 1`, p$`Comp 2`)
 length(overlapping_pathways)
-sapply(p, function(x) length(intersect(x, gsea1.1@result$ID))) # overlap with PLS model-1
+sapply(p, function(x) length(intersect(x, gsea1@result$Description))) # overlap with PLS model-1
 
 # Heatmap of pathways for components of PLS model-2
 lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   
-  # Get genesets of significant pathways abnd average the PLS coefficients of genes
+  # Get genesets of significant pathways and  gene weights
   pathways <- gsea2[[i]]@geneSets[gsea2[[i]]@result$ID]
   names(pathways) <- gsea2[[i]]@result$Description
-  pathways_avgweight <- sapply(pathways, function(g){
-    mean(gene_weights2[[i]][intersect(ahba.genes(), g)]) # average PLS coefficient of genes for each significant pathway
+  pathways_weight <- lapply(pathways, function(g){
+    gene_weights2[[i]][intersect(ahba.genes(), g)]
   })
-  
+
   # Average expresssion of genes in each significant pathways
   exprPathways <- sapply(pathways, function(g){
     g <- intersect(ahba.genes(), g)
@@ -161,23 +136,18 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   exprPathways <- t(scale(exprPathways))
   colnames(exprPathways) <- gsub("lh_", "", rois_lh)
   col_order <- order(pls2_scores_y[, i])
-  row_order <- order(pathways_avgweight)
-  pathways_avgweight <- pathways_avgweight[row_order]
-  exprPathways <- exprPathways[row_order, col_order]
+  exprPathways <- exprPathways[, col_order]
   
   # Heatmap of pathways for PLS component i
-  hm <- pls_heatmap(exprPathways, pathways_avgweight, pls2_scores_y[col_order, i], 
-                    'average gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
   pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 12.2, length(pathways)/10+2.2)
-  draw(hm, heatmap_legend_side = "left")
+  pls_heatmap(exprPathways, pathways_weight, pls2_scores_y[col_order, i], 
+                    'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
   dev.off()
   
-  # Heatmap of top10 +ve and -ve correlated pathways
-  idx <- c(c(1:10), c((length(pathways_avgweight)-9):length(pathways_avgweight)))
-  hm <- pls_heatmap(exprPathways[idx, ], pathways_avgweight[idx], pls2_scores_y[col_order, i], 
-                    'average gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
-  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top10.pdf"), 10, 4.2)
-  draw(hm, heatmap_legend_side = "left")
+  # Heatmap of top30 pathways
+  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top30.pdf"), 12, 5)
+  hm <- pls_heatmap(exprPathways[1:30, ], pathways_weight[1:30], pls2_scores_y[col_order, i], 
+                    'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
   dev.off()
   
 })

@@ -124,10 +124,10 @@ pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name
   ha_row <- rowAnnotation(b = anno_boxplot(row_feature), 
                           width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
   names(ha_row) <- row_name
+  pathway_median <- sapply(row_feature, median)
   # Plot heatmap with annotation along the axes
   hm <- Heatmap(expr, name = 'Z-Score\nexpression',
-                # row_split = ifelse(sapply(row_feature, median) > 0, "Positively\ncorrelated pathways", "Negatively\ncorrelated pathways"),
-                # column_split = ifelse(column_feature > 0, "Regions with CT loss ", "Regions with increased CT"),
+                row_split = ifelse(pathway_median > 0, "Positively\ncorrelated pathways", "Negatively\ncorrelated pathways"),
                 cluster_rows = FALSE,
                 cluster_columns = FALSE,
                 row_names_gp = gpar(fontsize = 6),
@@ -147,10 +147,25 @@ pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name
   )
   draw(hm, heatmap_legend_side = "left")
   # add vertical line at 0 in row annotation plot
-  decorate_annotation(row_name, {
-    grid.lines(c(0, 0), c(0.5, nrow(expr)+0.5), default.units = "native",
-               gp = gpar(lty = 1, col = "red"))
-  })
+  positive_pathways <- sum(pathway_median>0)
+  negative_pathways <- sum(pathway_median<0)
+  if (positive_pathways > 0 && negative_pathways > 0){
+    decorate_annotation(row_name, {
+      grid.lines(c(0, 0), c(-positive_pathways, negative_pathways+.5), default.units = "native",
+                 gp = gpar(lty = 1, col = "red"))
+    })
+  } else if (positive_pathways > 0){
+    decorate_annotation(row_name, {
+      grid.lines(c(0, 0), c(0, positive_pathways+.5), default.units = "native",
+                 gp = gpar(lty = 1, col = "red"))
+    })
+  } else {
+    decorate_annotation(row_name, {
+      grid.lines(c(0, 0), c(0, negative_pathways+.5), default.units = "native",
+                 gp = gpar(lty = 1, col = "red"))
+    })
+  }
+  
 }
 
 # Get genesets of significant pathways and average the gene weights
@@ -159,28 +174,18 @@ names(pathways) <- gsea1@result$Description
 pathways_weight <- lapply(pathways, function(g){
   gene_weights1[intersect(ahba.genes(), g)]
 })
-# df <- melt(pathways_weight)
-# colnames(df) <- c("weight", "pathway")
-# df$pathway <- factor(df$pathway, levels = unique(df$pathway))
-# ggplot(df) +
-#   geom_boxplot(aes(pathway, weight)) +
-#   geom_hline(yintercept=0) + 
-#   coord_flip()
 
 # Average expresssion of genes in each significant pathways
 exprPathways <- sapply(pathways, function(g){
   g <- intersect(ahba.genes(), g)
   e <- roi_expr[, g]
   apply(e, 1, mean)
-  # c <- gene_weights1[g]
+  # c <- gene_weights1[g] # weighted gene expression
   # e %*% c
 })
 exprPathways <- t(scale(exprPathways))
 colnames(exprPathways) <- gsub("lh_", "", rois_lh)
 col_order <- order(y)
-# row_order <- order(pathways_avgweight)
-# pathways_avgweight <- pathways_avgweight[row_order]
-# exprPathways <- exprPathways[row_order, col_order]
 exprPathways <- exprPathways[, col_order]
 
 # Heatmap of pathways for PLS1 of X
@@ -188,55 +193,33 @@ pdf("output/heatmap_plsmodel1_comp1.pdf", 11.7, 11.2) #12.2, 17.5)
 pls_heatmap(exprPathways, pathways_weight, y[col_order], 'gene weight', 't-statistic of Delta CT')
 dev.off()
 
-# # Heatmap of top30 most significant pathways that are shown in the emapplot
-# # top30pathways <- gsea1.1@result[1:30,"Description"]
-# top30pathways <- names(sort(abs(pathways_avgweight), decreasing = TRUE)[1:30])
-# rows <- which(rownames(exprPathways) %in% top30pathways)
-# rows <- sort(rows)
-# hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 
-#                   'average PLS coefficient of genes', paste0('PLS component-', i, ' score of Betas'))
-# pdf(paste0("output/heatmap_plsmodel1_", gsub("Comp ", "comp", i), "_top30.pdf"), 10, 5)
-# draw(hm, heatmap_legend_side = "left")
-# dev.off()
-
 # Small version of heatmap
-# rows <- which(rownames(exprPathways) %in% c("Protein folding", "Apoptosis", "Regulation of RAS by GAPs", 
-#        "Cellular response to hypoxia", "Regulation of mitotic cell cycle",
-#        "Mitochondrial protein import", "Mitochondrial translation",
-#        "p53−Independent DNA Damage Response",
-#        "Stabilization of p53", "APC/C:Cdc20 mediated degradation of mitotic proteins",
-#        "Signaling by Interleukins", 
-#        "Circadian Clock", "Transcriptional Regulation by MECP2", 
-#        "Chromatin organization", "Nucleotide Excision Repair"))
-# rows <- c(rows, grep("DNA damage|DNA Damage|SUMO", rownames(exprPathways)))
-rows <- which(rownames(exprPathways) %in% c("Autodegradation of the E3 ubiquitin ligase COP1",
-                                            "DNA Damage Recognition in GG−NER", 
-                                            "p53−Independent G1/S DNA damage checkpoint", 
-                                            "p53−Dependent G1/S DNA damage checkpoint",
-                                            "Ubiquitin−dependent degradation of Cyclin D",
-                                            "Stabilization of p53",
-                                            "Regulation of Apoptosis", 
-                                            "Autodegradation of Cdh1 by Cdh1:APC/C",
-                                            "Regulation of RAS by GAPs",
-                                            "Mitochondrial translation elongation",
-                                            "Mitochondrial translation initiation",
-                                            "Orc1 removal from chromatin",
-                                            "Mitochondrial protein import",
-                                            "Mitochondrial translation termination",
-                                            "Mitochondrial translation",
-                                            "APC/C:Cdc20 mediated degradation of mitotic proteins",
-                                            "APC/C−mediated degradation of cell cycle proteins",
-                                            "Regulation of mitotic cell cycle",
-                                            "SUMOylation of chromatin organization proteins",
-                                            "Signaling by cytosolic FGFR1 fusion mutants",
-                                            "Class C/3 (Metabotropic glutamate/pheromone receptors)"))
-# rows <- c(rows, grep("DNA damage|DNA Damage|degradation|SUMO|Mitochondrial|p53|chromati", rownames(exprPathways)))
-# rows <- unique(rows)
-rows <- sort(rows)
+# rows <- which(rownames(exprPathways) %in% c("Autodegradation of the E3 ubiquitin ligase COP1",
+#                                             "DNA Damage Recognition in GG−NER", 
+#                                             "p53−Independent G1/S DNA damage checkpoint", 
+#                                             "p53−Dependent G1/S DNA damage checkpoint",
+#                                             "Ubiquitin−dependent degradation of Cyclin D",
+#                                             "Stabilization of p53",
+#                                             "Regulation of Apoptosis", 
+#                                             "Autodegradation of Cdh1 by Cdh1:APC/C",
+#                                             "Regulation of RAS by GAPs",
+#                                             "Mitochondrial translation elongation",
+#                                             "Mitochondrial translation initiation",
+#                                             "Orc1 removal from chromatin",
+#                                             "Mitochondrial protein import",
+#                                             "Mitochondrial translation termination",
+#                                             "Mitochondrial translation",
+#                                             "APC/C:Cdc20 mediated degradation of mitotic proteins",
+#                                             "APC/C−mediated degradation of cell cycle proteins",
+#                                             "Regulation of mitotic cell cycle",
+#                                             "SUMOylation of chromatin organization proteins",
+#                                             "Signaling by cytosolic FGFR1 fusion mutants",
+#                                             "Class C/3 (Metabotropic glutamate/pheromone receptors)"))
+# rows <- sort(rows)
 # hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'average gene weight', 't-statistic of Delta CT')
-pdf("output/heatmap_plsmodel1_comp1_reduced.pdf", 8.1, 4.25)
+pdf("output/heatmap_plsmodel1_comp1_top30.pdf", 12, 5.1)
 # draw(hm, heatmap_legend_side = "left")
-hm <- pls_heatmap(exprPathways[rows, ], pathways_weight[rows], y[col_order], 'gene weight', 't-statistic of Delta CT')
+hm <- pls_heatmap(exprPathways[1:30, ], pathways_weight[1:30], y[col_order], 'gene weight', 't-statistic of Delta CT')
 dev.off()
 
 # # Cell-type enrichment
