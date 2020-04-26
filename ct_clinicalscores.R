@@ -1,10 +1,11 @@
 # Correlation coefficient of clinical scores
 
 # Relation between ct and cs for at most 123 PD patients
-coef_eq1 <- lapply(clinicalScores, function(cs){ # For each score across patients
+age <- clinicalScores$AGE
+coef_eq1 <- lapply(clinicalScores[-1], function(cs){ # For each score across patients
   sapply(ct_lh[patientIDs, ], function(ct){ # For each region with ct across patients
-    res <- lm(cs ~ ct)
-    res  <- summary(res)
+    res <- lm(cs ~ ct + age)
+    res <- summary(res)
     res$coefficients[2, c(1,3,4)]# coefficient + p-value
   })
 })
@@ -16,7 +17,7 @@ df$value <- p.adjust(df$value, method = "BH") # BH-correct for regions and clini
 bh <- dcast(df, Var1 ~ Var2)[, -1]
 coef_eq1 <- abind(coef_eq1, 'BH' = bh, along = 1) # BH added to coef
 range(coef_eq1["t value", , ])
-# sum(coef_eq1["BH", , ] < 0.05)
+sum(coef_eq1["BH", , ] < 0.05)
 
 # Heatmaps for coefficients and BH-corrected P-values
 t <- t(coef_eq1["t value", , ])
@@ -127,7 +128,7 @@ hm5 <- Heatmap(t, name = "scaled beta\n(for each row\nand column)",
                  }
                }
 )
-pdf("output/heatmap_clinical_scores.pdf", 8.5, 3.8)#7.8, 3.8)
+pdf("output/heatmap_clinical_scores.pdf", 8.5, 3.6)
 hm1
 hm2
 hm3
