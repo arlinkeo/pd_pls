@@ -101,7 +101,7 @@ write.table(tab, file = "output/plsmodel1_geneweights.txt", quote = FALSE, sep =
 # dev.off()
 
 # Functional enrichment with Reactome PA and GSEA
-# abs.geneweights <- sort(abs(gene_weights1), decreasing = TRUE)
+# abs.geneweights1 <- sort(abs(gene_weights1), decreasing = TRUE)
 gsea1 <- gsePathway(geneweights1, organism = "human", pAdjustMethod = "BH")
 df <- as.data.frame(gsea1)
 df <- df[, c("Description", "p.adjust")]
@@ -168,7 +168,7 @@ pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name
   
 }
 
-# Get genesets of significant pathways and average the gene weights
+# Get genesets of significant pathways and gene weights
 pathways <- gsea1@geneSets[gsea1@result$ID]
 names(pathways) <- gsea1@result$Description
 pathways_weight <- lapply(pathways, function(g){
@@ -189,35 +189,12 @@ col_order <- order(y)
 exprPathways <- exprPathways[, col_order]
 
 # Heatmap of pathways for PLS1 of X
-pdf("output/heatmap_plsmodel1_comp1.pdf", 11.7, 11.2) #12.2, 17.5)
+pdf("output/heatmap_plsmodel1_comp1_abs_weights.pdf", 11.7, 11.2) #12.2, 17.5)
 pls_heatmap(exprPathways, pathways_weight, y[col_order], 'gene weight', 't-statistic of Delta CT')
 dev.off()
 
 # Small version of heatmap
-# rows <- which(rownames(exprPathways) %in% c("Autodegradation of the E3 ubiquitin ligase COP1",
-#                                             "DNA Damage Recognition in GG−NER", 
-#                                             "p53−Independent G1/S DNA damage checkpoint", 
-#                                             "p53−Dependent G1/S DNA damage checkpoint",
-#                                             "Ubiquitin−dependent degradation of Cyclin D",
-#                                             "Stabilization of p53",
-#                                             "Regulation of Apoptosis", 
-#                                             "Autodegradation of Cdh1 by Cdh1:APC/C",
-#                                             "Regulation of RAS by GAPs",
-#                                             "Mitochondrial translation elongation",
-#                                             "Mitochondrial translation initiation",
-#                                             "Orc1 removal from chromatin",
-#                                             "Mitochondrial protein import",
-#                                             "Mitochondrial translation termination",
-#                                             "Mitochondrial translation",
-#                                             "APC/C:Cdc20 mediated degradation of mitotic proteins",
-#                                             "APC/C−mediated degradation of cell cycle proteins",
-#                                             "Regulation of mitotic cell cycle",
-#                                             "SUMOylation of chromatin organization proteins",
-#                                             "Signaling by cytosolic FGFR1 fusion mutants",
-#                                             "Class C/3 (Metabotropic glutamate/pheromone receptors)"))
-# rows <- sort(rows)
-# hm <- pls_heatmap(exprPathways[rows, ], pathways_avgweight[rows], y[col_order], 'average gene weight', 't-statistic of Delta CT')
-pdf("output/heatmap_plsmodel1_comp1_top30.pdf", 12, 5.1)
+pdf("output/heatmap_plsmodel1_comp1_top30abs_weights.pdf", 12, 5.1)
 # draw(hm, heatmap_legend_side = "left")
 hm <- pls_heatmap(exprPathways[1:30, ], pathways_weight[1:30], y[col_order], 'gene weight', 't-statistic of Delta CT')
 dev.off()
