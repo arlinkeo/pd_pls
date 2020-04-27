@@ -2,7 +2,7 @@
 
 # Relation between ct and cs for at most 123 PD patients
 age <- clinicalScores$AGE
-coef_eq1 <- lapply(clinicalScores[-1], function(cs){ # For each score across patients
+coef_eq1 <- lapply(clinicalScores[-c(1,5)], function(cs){ # For each score across patients
   sapply(ct_lh[patientIDs, ], function(ct){ # For each region with ct across patients
     res <- lm(cs ~ ct + age)
     res <- summary(res)
