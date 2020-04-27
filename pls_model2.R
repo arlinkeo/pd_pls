@@ -173,11 +173,11 @@ p <- lapply(c(1:2), function(i){
     p
   })
   p[["text"]] <- textGrob(bquote('PLS'~italic(.(comp))), gp = gpar(fontsize = 24))
-  p <- p[c(11,1:10)]
-  p <- grid.arrange(grobs = p, layout_matrix = matrix(c(1, 1:11), ncol = 3, byrow = TRUE))
+  p <- p[c(10,1:9)]
+  p <- grid.arrange(grobs = p, layout_matrix = matrix(c(1, 1, 1:10), ncol = 3, byrow = TRUE))
   p
 })
-pdf("output/scatterplots_plsmodel2_responses.pdf", 24, 16)
+pdf("output/scatterplots_plsmodel2_responses.pdf", 24, 14)
 grid.arrange(grobs = p, layout_matrix = matrix(c(1:2), ncol = 2, byrow = TRUE))
 grid.lines(x = unit(c(.5,.5), "npc"), y = unit(c(0,1), "npc"))
 dev.off()
