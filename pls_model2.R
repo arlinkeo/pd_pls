@@ -61,6 +61,7 @@ p <- lapply(c(1:3), function(i){
     r.pls = pls_model2$Yscores[,i] # response PLS1 scores
   )
   df$name[which(!((df$p.pls %in% range(df$p.pls)) | (df$r.pls %in% range(df$r.pls))))] <- ""
+  r = round(cor(df$p.pls, df$r.pls), digits = 2)
   ggplot(df, aes(p.pls, r.pls)) +
     geom_point(color = "blue") + geom_smooth(method = "lm") +
     geom_text_repel(aes(label = name), size = 3) +
@@ -68,10 +69,10 @@ p <- lapply(c(1:3), function(i){
          y = bquote('PLS'~italic('component-'*.(i))~"of"~beta*"'s ("*.(round(explVarY[i]))*'%)')) +
     geom_hline(yintercept=0, linetype="dashed", color = "gray") +
     geom_vline(xintercept=0, linetype="dashed", color = "gray") +
-    ggtitle(paste("r =", round(cor(df$p.pls, df$r.pls), digits = 2))) +
+    ggtitle(bquote(italic('r')~'='~.(r))) +
     theme_classic()
 })
-pdf("output/pls_clinical_scores.pdf", 12, 3)
+pdf("output/scatterplot_plsmodel2.pdf", 12, 3)
 ggarrange(plotlist = p, nrow = 1)
 dev.off()
 
@@ -80,7 +81,7 @@ gene_weights2 <- sapply(colnames(pls_model2$projection)[1:3], function(n){
   r <- pls_model2$projection[, n]
   r <- sort(r, decreasing = TRUE)
   tab <- data.frame(Gene = entrezId2Name(names(r)), Weight = r)
-  write.table(tab, file = paste0("output/plsmodel2_geneweights", gsub("Comp ", "comp", n), ".txt"), quote = FALSE, sep = "\t", row.names = FALSE)
+  write.table(tab, file = paste0("output/plsmodel2_geneweights-", gsub("Comp ", "comp", n), ".txt"), quote = FALSE, sep = "\t", row.names = FALSE)
   r
 }, simplify = FALSE)
 
@@ -104,7 +105,7 @@ options(stringsAsFactors = TRUE)
 pdf("output/GSEA_plsmodel2.pdf", 9, 8)
 emapplot(gsea2$`Comp 1`, color = "pvalue")
 emapplot(gsea2$`Comp 2`, color = "pvalue")
-emapplot(gsea2$`Comp 3`, color = "pvalue")
+# emapplot(gsea2$`Comp 3`, color = "pvalue")
 dev.off()
 options(stringsAsFactors = FALSE)
 
@@ -145,7 +146,7 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   dev.off()
   
   # Heatmap of top30 pathways
-  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top30.pdf"), 12, 5)
+  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top30.pdf"), 12, 5.2)
   hm <- pls_heatmap(exprPathways[1:30, ], pathways_weight[1:30], pls2_scores_y[col_order, i], 
                     'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
   dev.off()
@@ -172,10 +173,11 @@ p <- lapply(c(1:2), function(i){
     p
   })
   p[["text"]] <- textGrob(bquote('PLS'~italic(.(comp))), gp = gpar(fontsize = 24))
-  p[c(12,1:11)]
+  p <- p[c(11,1:10)]
+  p <- grid.arrange(grobs = p, layout_matrix = matrix(c(1, 1:11), ncol = 3, byrow = TRUE))
+  p
 })
-p <- unlist(p, recursive = FALSE)
 pdf("output/scatterplots_plsmodel2_responses.pdf", 24, 16)
-grid.arrange(grobs = p, layout_matrix = matrix(c(1:24), nrow = 4, byrow = TRUE))
-grid.lines(x = unit(c(0,1), "npc"), y = unit(c(.5,.5), "npc"))
+grid.arrange(grobs = p, layout_matrix = matrix(c(1:2), ncol = 2, byrow = TRUE))
+grid.lines(x = unit(c(.5,.5), "npc"), y = unit(c(0,1), "npc"))
 dev.off()
