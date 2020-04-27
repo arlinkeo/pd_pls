@@ -23,7 +23,7 @@ sum(coef_eq1["BH", , ] < 0.05)
 t <- t(coef_eq1["t value", , ])
 q1 <- max(quantile(abs(t), 0.9))
 col_fun <- colorRamp2(c(-q1, 0, q1), c("blue", "#EEEEEE", "red"))# Heat colors centered around 0
-hm1 <- Heatmap(t, name = "t-statistic\nof beta",
+hm1 <- Heatmap(t, name = "t-statistic of beta",
                col = col_fun,
                cluster_rows = FALSE,
                row_names_gp = gpar(fontsize = 10),
