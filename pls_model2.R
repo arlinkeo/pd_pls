@@ -109,15 +109,6 @@ emapplot(gsea2$`Comp 2`, color = "pvalue")
 dev.off()
 options(stringsAsFactors = FALSE)
 
-# Overlap pathways
-p <- lapply(gsea2, function(gsea){
-  gsea@result$Description
-})
-lengths(p)
-overlapping_pathways <- intersect(p$`Comp 1`, p$`Comp 2`)
-length(overlapping_pathways)
-sapply(p, function(x) length(intersect(x, gsea1@result$Description))) # overlap with PLS model-1
-
 # Heatmap of pathways for components of PLS model-2
 lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   
