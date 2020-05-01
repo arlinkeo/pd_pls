@@ -14,6 +14,7 @@ library('ReactomePA')
 library(foreign)
 library(ggrepel)
 library(gridExtra)
+library(gplots)
 
 # Useful variables
 donorNames <- c("donor9861", "donor10021", "donor12876", "donor14380", "donor15496", "donor15697")
