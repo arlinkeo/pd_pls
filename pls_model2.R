@@ -16,11 +16,11 @@ pls_model2 <- plsr(y ~ x, ncomp = 10, scale = TRUE, validation = "LOO")
 summary(pls_model2)
 explVarX <- explvar(pls_model2)
 explVarY <- YexplVar(pls_model2)
-pls2_scores_x <- pls_model2$scores#scores(pls_model2)
-tab <- cbind(ID = c(1:34), label = rois_lh, pls2_scores_x)
+plsmodel2_scores_x <- pls_model2$scores#scores(pls_model2)
+tab <- cbind(ID = c(1:34), label = rois_lh, plsmodel2_scores_x)
 write.table(tab, file = "output/plsmodel2_scores_x.txt", quote = FALSE, row.names = FALSE, sep = "\t")
-pls2_scores_y <- pls_model2$Yscores
-tab <- cbind(ID = c(1:34), label = rois_lh, pls2_scores_y)
+plsmodel2_scores_y <- pls_model2$Yscores
+tab <- cbind(ID = c(1:34), label = rois_lh, plsmodel2_scores_y)
 write.table(tab, file = "output/plsmodel2_scores_y.txt", quote = FALSE, row.names = FALSE, sep = "\t")
 
 # Plot explained variance
@@ -38,20 +38,6 @@ pdf("output/pls_model2_explained_variance.pdf", 4, 3)
 p
 dev.off()
 
-# # PLS model 2 permutation test of components
-# system.time(
-# perm_stat <- t(sapply(1:1000, function(i){
-#   order <- sample(1:nrow(y))
-#   y_perm <- y[order,]
-#   pls <- plsr(y_perm ~ x, ncomp = 10, scale = TRUE)
-#   YexplVar(pls)
-# }))
-# )
-# perm_p <- sapply(paste("Comp", c(1:10)), function(c){
-#   sum(perm_stat[,c] >= explVarY[c])/1000
-# })
-# perm_p
-
 # Scatter plot
 p <- lapply(c(1:3), function(i){
   df <- data.frame(
@@ -65,8 +51,8 @@ p <- lapply(c(1:3), function(i){
   ggplot(df, aes(p.pls, r.pls)) +
     geom_point(color = "blue") + geom_smooth(method = "lm") +
     geom_text_repel(aes(label = name), size = 3) +
-    labs(x = bquote('PLS'~italic('component-'*.(i))~"of gene expression ("*.(round(explVarX[i]))*"%)"), 
-         y = bquote('PLS'~italic('component-'*.(i))~"of"~beta*"'s ("*.(round(explVarY[i]))*'%)')) +
+    labs(x = bquote('PLS'~italic('component-'*.(i))~'of gene expression ('*.(round(explVarX[i]))*'%)'), 
+         y = bquote(atop('PLS'~italic('component-'*.(i))~'of relationship', 'between CT and clinical scores'~'('*.(round(explVarY[i]))*'%)'))) +
     geom_hline(yintercept=0, linetype="dashed", color = "gray") +
     geom_vline(xintercept=0, linetype="dashed", color = "gray") +
     ggtitle(bquote(italic('r')~'='~.(r))) +
@@ -105,12 +91,11 @@ options(stringsAsFactors = TRUE)
 pdf("output/GSEA_plsmodel2.pdf", 9, 8)
 emapplot(gsea2$`Comp 1`, color = "pvalue")
 emapplot(gsea2$`Comp 2`, color = "pvalue")
-# emapplot(gsea2$`Comp 3`, color = "pvalue")
 dev.off()
 options(stringsAsFactors = FALSE)
 
 # Heatmap of pathways for components of PLS model-2
-lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
+lapply(names(gsea2)[1:2], function(i){
   
   # Get genesets of significant pathways and  gene weights
   pathways <- gsea2[[i]]@geneSets[gsea2[[i]]@result$ID]
@@ -127,18 +112,18 @@ lapply(names(gsea2)[-which(lengths(p)==0)], function(i){
   })
   exprPathways <- t(scale(exprPathways))
   colnames(exprPathways) <- gsub("lh_", "", rois_lh)
-  col_order <- order(pls2_scores_y[, i])
+  col_order <- order(plsmodel2_scores_y[, i])
   exprPathways <- exprPathways[, col_order]
   
   # Heatmap of pathways for PLS component i
-  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 12.2, length(pathways)/10+2.2)
-  pls_heatmap(exprPathways, pathways_weight, pls2_scores_y[col_order, i], 
+  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 12.2, length(pathways)/10+2.8)
+  pls.heatmap(exprPathways, pathways_weight, plsmodel2_scores_y[col_order, i], 
                     'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
   dev.off()
   
   # Heatmap of top30 pathways
-  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top30.pdf"), 12, 5.2)
-  hm <- pls_heatmap(exprPathways[1:30, ], pathways_weight[1:30], pls2_scores_y[col_order, i], 
+  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top30.pdf"), 12, 5.8)
+  hm <- pls.heatmap(exprPathways[1:30, ], pathways_weight[1:30], plsmodel2_scores_y[col_order, i], 
                     'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
   dev.off()
   
