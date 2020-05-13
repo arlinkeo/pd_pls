@@ -28,14 +28,25 @@ df <- data.frame(Comp = gsub("Comp ", "", names(explVarX)), explVarX = explVarX,
 df <- melt(df, measure.vars = c("explVarX", "cumexplVarX"))
 df$Comp <- factor(df$Comp, levels = unique(df$Comp))
 df$variable <- factor(df$variable, levels = unique(df$variable), labels = c("Explained variance", "Cumulative explained variance"))
-p <- ggplot(df, aes(Comp, value, group = variable)) +
+p1 <- ggplot(df, aes(Comp, value, group = variable)) +
+  geom_point(aes(color = variable)) +
+  geom_line(aes(color = variable)) +
+  labs(x = "Number of components", y = "Explained variance") +
+  theme_classic() +
+  theme(legend.title = element_blank(), legend.position = "top")
+df <- data.frame(Comp = gsub("Comp ", "", names(explVarY)), explVarY = explVarY, cumexplVarY = cumsum(explVarY))
+df <- melt(df, measure.vars = c("explVarY", "cumexplVarY"))
+df$Comp <- factor(df$Comp, levels = unique(df$Comp))
+df$variable <- factor(df$variable, levels = unique(df$variable), labels = c("Explained variance", "Cumulative explained variance"))
+p2 <- ggplot(df, aes(Comp, value, group = variable)) +
   geom_point(aes(color = variable)) +
   geom_line(aes(color = variable)) +
   labs(x = "Number of components", y = "Explained variance") +
   theme_classic() +
   theme(legend.title = element_blank(), legend.position = "top")
 pdf("output/pls_model2_explained_variance.pdf", 4, 3)
-p
+p1
+p2
 dev.off()
 
 # Scatter plot
