@@ -56,13 +56,14 @@ df <- data.frame(
   pls1 = pls1_scores_x[,1],
   tscores = y)
 df$name[which(!((df$pls1 %in% range(df$pls1)) | (df$tscores %in% range(df$tscores))))] <- ""
+r <- round(cor(df$pls1, y), digits = 2)
 p <- ggplot(df, aes(pls1, tscores)) +
   geom_point(color = "blue", size = 2) + geom_smooth(method = "lm") +
   geom_text_repel(aes(label = name), size = 3, force = 2) +
   labs(x = bquote('PLS'~italic('component-1')~'score'), y = bquote(italic('t')*'-statistic of '~Delta~'CT')) +
   geom_hline(yintercept=0, linetype="dashed", color = "gray") +
   geom_vline(xintercept=0, linetype="dashed", color = "gray") +
-  ggtitle(paste("r =", round(cor(df$pls1, y), digits = 2))) +
+  ggtitle(bquote(italic('r')~'='~.(r))) +
   theme_classic()
 pdf("output/scatterplot_plsmodel1_tstats.pdf", 4, 3)
 p
@@ -114,60 +115,6 @@ emapplot(gsea1, color = "pvalue")
 dev.off()
 options(stringsAsFactors = FALSE)
 
-# heatmap function
-pls_heatmap <- function(expr, row_feature, column_feature, row_name, column_name){
-  # column annotation (t-statistics of Delta CT)
-  ha_col <- HeatmapAnnotation(a = anno_barplot(column_feature),
-                              height = unit(2, "cm"), annotation_name_gp = gpar(fontsize = 8))
-  names(ha_col) <- column_name
-  # row annotation (gene weights within pathway)
-  ha_row <- rowAnnotation(b = anno_boxplot(row_feature), 
-                          width = unit(3, "cm"), annotation_name_gp = gpar(fontsize = 8))
-  names(ha_row) <- row_name
-  pathway_median <- sapply(row_feature, median)
-  # Plot heatmap with annotation along the axes
-  hm <- Heatmap(expr, name = 'Z-Score\nexpression',
-                row_split = ifelse(pathway_median > 0, "Positively\ncorrelated pathways", "Negatively\ncorrelated pathways"),
-                cluster_rows = FALSE,
-                cluster_columns = FALSE,
-                row_names_gp = gpar(fontsize = 6),
-                row_names_side = c("right"),
-                row_title_rot = 90,
-                row_title_gp = gpar(fontsize = 8),
-                row_title_side = "left",
-                column_names_side = c("top"),
-                column_names_gp = gpar(fontsize = 6),
-                column_names_rot = 45,
-                column_title_gp = gpar(fontsize = 8),
-                column_title_side = "bottom",
-                width = unit(ncol(expr)*.5, "lines"),
-                height = unit(nrow(expr)*.5, "lines"),
-                top_annotation = ha_col,
-                right_annotation = ha_row
-  )
-  draw(hm, heatmap_legend_side = "left")
-  # add vertical line at 0 in row annotation plot
-  positive_pathways <- sum(pathway_median>0)
-  negative_pathways <- sum(pathway_median<0)
-  if (positive_pathways > 0 && negative_pathways > 0){
-    decorate_annotation(row_name, {
-      grid.lines(c(0, 0), c(-positive_pathways, negative_pathways+.5), default.units = "native",
-                 gp = gpar(lty = 1, col = "red"))
-    })
-  } else if (positive_pathways > 0){
-    decorate_annotation(row_name, {
-      grid.lines(c(0, 0), c(0, positive_pathways+.5), default.units = "native",
-                 gp = gpar(lty = 1, col = "red"))
-    })
-  } else {
-    decorate_annotation(row_name, {
-      grid.lines(c(0, 0), c(0, negative_pathways+.5), default.units = "native",
-                 gp = gpar(lty = 1, col = "red"))
-    })
-  }
-  
-}
-
 # Get genesets of significant pathways and gene weights
 pathways <- gsea1@geneSets[gsea1@result$ID]
 names(pathways) <- gsea1@result$Description
@@ -189,14 +136,13 @@ col_order <- order(y)
 exprPathways <- exprPathways[, col_order]
 
 # Heatmap of pathways for PLS1 of X
-pdf("output/heatmap_plsmodel1_comp1_abs_weights.pdf", 11.7, 11.2) #12.2, 17.5)
-pls_heatmap(exprPathways, pathways_weight, y[col_order], 'gene weight', 't-statistic of Delta CT')
+pdf("output/heatmap_plsmodel1_comp1.pdf", 11.7, 11.8) #12.2, 17.5)
+pls.heatmap(exprPathways, pathways_weight, y[col_order], 'gene weight', 't-statistic of Delta CT')
 dev.off()
 
 # Small version of heatmap
-pdf("output/heatmap_plsmodel1_comp1_top30abs_weights.pdf", 12, 5.1)
-# draw(hm, heatmap_legend_side = "left")
-hm <- pls_heatmap(exprPathways[1:30, ], pathways_weight[1:30], y[col_order], 'gene weight', 't-statistic of Delta CT')
+pdf("output/heatmap_plsmodel1_comp1_top30.pdf", 12, 5.8)
+hm <- pls.heatmap(exprPathways[1:30, ], pathways_weight[1:30], y[col_order], 'gene weight', 't-statistic of Delta CT')
 dev.off()
 
 # # Cell-type enrichment
