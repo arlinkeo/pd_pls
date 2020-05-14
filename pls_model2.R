@@ -127,10 +127,25 @@ lapply(names(gsea2)[1:2], function(i){
   exprPathways <- exprPathways[, col_order]
   
   # Heatmap of pathways for PLS component i
-  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 12.2, length(pathways)/10+2.8)
-  pls.heatmap(exprPathways, pathways_weight, plsmodel2_scores_y[col_order, i], 
-                    'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
-  dev.off()
+  # Split table if too many rows
+  nrow <- nrow(exprPathways)
+  maxrow <- 80
+  if (nrow > maxrow){
+    pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 13, 11)
+    lapply(1:ceiling(nrow/maxrow), function(j){
+      print(paste(i, j))
+      n <- min(j*maxrow, nrow)
+      rows <- ((j*maxrow-maxrow)+1):n
+      pls.heatmap(exprPathways[rows, ], pathways_weight[rows], plsmodel2_scores_y[col_order, i], 
+                  'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
+    })
+    dev.off()
+  } else {
+    pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 13, 11)
+    pls.heatmap(exprPathways, pathways_weight, plsmodel2_scores_y[col_order, i], 
+                'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
+    dev.off()
+  }
   
   # Heatmap of top30 pathways
   pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top30.pdf"), 12, 5.8)
