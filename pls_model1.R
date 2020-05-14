@@ -58,9 +58,9 @@ write.table(tab, file = "output/plsmodel1_geneweights.txt", quote = FALSE, sep =
 # abs.geneweights1 <- sort(abs(gene_weights1), decreasing = TRUE)
 gsea1 <- gsePathway(geneweights1, organism = "human", pAdjustMethod = "BH")
 df <- as.data.frame(gsea1)
-df <- df[, c("Description", "p.adjust")]
-df$p.adjust <- format(df$p.adjust, digits = 3, scientific = TRUE)
-names(df) <- c("Pathway", "P-value")
+df <- df[, c("Description", "pvalue", "p.adjust")]
+df[, c("pvalue", "p.adjust")] <- format(df[, c("pvalue", "p.adjust")], digits = 3, scientific = TRUE)
+names(df) <- c("Pathway", "P-value", "BH-corrected P-value")
 write.table(df, file = "output/GSEA_plsmodel1_comp1.txt", quote = FALSE, sep = "\t", row.names = FALSE)
 options(stringsAsFactors = TRUE)
 pdf("output/GSEA_plsmodel1_comp1.pdf", 9, 8)

@@ -91,9 +91,9 @@ gsea2 <- sapply(names(gene_weights2)[1:3], function(i){
 # Write tables
 lapply(names(gsea2), function(i){
   df <- as.data.frame(gsea2[[i]])
-  df <- df[, c("Description", "p.adjust")]
-  df$p.adjust <- format(df$p.adjust, digits = 3, scientific = TRUE)
-  names(df) <- c("Pathway", "P-value")
+  df <- df[, c("Description", "pvalue", "p.adjust")]
+  df[, c("pvalue", "p.adjust")] <- format(df[, c("pvalue", "p.adjust")], digits = 3, scientific = TRUE)
+  names(df) <- c("Pathway", "P-value", "BH-corrected P-value")
   write.table(df, file = paste0("output/GSEA_plsmodel2_", gsub("Comp ", "comp", i), ".txt"), quote = FALSE, sep = "\t", row.names = FALSE)
 })
 
@@ -127,10 +127,25 @@ lapply(names(gsea2)[1:2], function(i){
   exprPathways <- exprPathways[, col_order]
   
   # Heatmap of pathways for PLS component i
-  pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 12.2, length(pathways)/10+2.8)
-  pls.heatmap(exprPathways, pathways_weight, plsmodel2_scores_y[col_order, i], 
-                    'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
-  dev.off()
+  # Split table if too many rows
+  nrow <- nrow(exprPathways)
+  maxrow <- 80
+  if (nrow > maxrow){
+    pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 13, 11)
+    lapply(1:ceiling(nrow/maxrow), function(j){
+      print(paste(i, j))
+      n <- min(j*maxrow, nrow)
+      rows <- ((j*maxrow-maxrow)+1):n
+      pls.heatmap(exprPathways[rows, ], pathways_weight[rows], plsmodel2_scores_y[col_order, i], 
+                  'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
+    })
+    dev.off()
+  } else {
+    pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), ".pdf"), 13, 11)
+    pls.heatmap(exprPathways, pathways_weight, plsmodel2_scores_y[col_order, i], 
+                'gene weight', paste0('PLS component-', gsub("Comp ", "", i), ' response score'))
+    dev.off()
+  }
   
   # Heatmap of top30 pathways
   pdf(paste0("output/heatmap_plsmodel2_", gsub("Comp ", "comp", i), "_top30.pdf"), 12, 5.8)
@@ -161,10 +176,14 @@ p <- lapply(c(1:2), function(i){
   })
   p[["text"]] <- textGrob(bquote('PLS'~italic(.(comp))), gp = gpar(fontsize = 24))
   p <- p[c(10,1:9)]
-  p <- grid.arrange(grobs = p, layout_matrix = matrix(c(1:10), ncol = 5, byrow = TRUE))
+  p <- grid.arrange(grobs = p, layout_matrix = matrix(c(1:10), ncol = 2, byrow = TRUE))
   p
 })
 pdf("output/scatterplots_plsmodel2_responses.pdf", 20, 16)
 grid.arrange(grobs = p, layout_matrix = matrix(c(1:2), ncol = 1, byrow = TRUE))
 grid.lines(x = unit(c(0,1), "npc"), y = unit(c(.5,.5), "npc"))
+dev.off()
+pdf("output/scatterplots_plsmodel2_responses2.pdf", 16, 17)
+grid.arrange(grobs = p, layout_matrix = matrix(c(1:2), nrow = 1, byrow = TRUE))
+grid.lines(x = unit(c(.5,.5), "npc"), y = unit(c(0,1), "npc"))
 dev.off()

@@ -24,7 +24,7 @@ t <- sapply(sample_info, function(x) {
 colnames(t) <- gsub("donor", "Donor ", colnames(t))
 t <- cbind(parcel_id[rownames(t),], t, Total = apply(t, 1, sum))
 t$name <- gsub("lh_", "", t$name)
-colnames(t)[1:2] <- c("ROI", "Name")
+colnames(t)[1:2] <- c("Region ID", "Name")
 write.table(t, file = "output/number_of_samples.txt", sep = "\t", row.names = FALSE, quote = FALSE)
 
 # Parcel info
