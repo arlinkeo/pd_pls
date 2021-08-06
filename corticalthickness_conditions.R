@@ -1,4 +1,5 @@
-# Cortical thickness was compared between condition control and PD
+# Comparing cortical thickness between control and PD
+
 # A t-test was performed in SPSS 23, here we read in the results and output a table
 
 ########## Mean thickness between conditions ##########
