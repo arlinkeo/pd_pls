@@ -5,7 +5,24 @@ ct <- read.table("../Corticale_dikte_PD_FS_.txt", header = TRUE)
 colnames(ct) <- gsub("_thickness", "", colnames(ct))
 rownames(ct) <- ct$ID
 
-# Regions of interest (ROI's)
+# CT differences between men and women
+men <- which(ct$Sex == 1)
+women <- which(ct$Sex == 0)
+ttest_gender <- data.frame(t(apply(ct[,5:ncol(ct)], 2, function(x){
+  m <- x[men]
+  w <- x[women]
+  t <- t.test(m, w)
+  c(t$statistic,
+    'mean difference' = unname(t$estimate[1]) - unname(t$estimate[2]),
+    ct.men = unname(t$estimate[1]), 
+    ct.women = unname(t$estimate[2]), 
+    pvalue = t$p.value)
+})))
+ttest_gender$BH <- p.adjust(ttest_gender$pvalue)
+ttest_gender <- cbind('Region' = rownames(ttest_gender), ttest_gender)
+ttest_gender[ttest_gender$BH<0.05, ]
+
+# Regions of interest (ROI's) per hemisphere
 rois <- intersect(colnames(ct), parcel_id$name)
 rois_lh <- rois[grep("lh_", rois)]
 rois_rh <- rois[grep("rh_", rois)]
